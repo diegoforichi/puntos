@@ -1,0 +1,68 @@
+# Laravel & PHP
+/app/vendor/
+/app/node_modules/
+/app/public/hot
+/app/public/storage
+/app/storage/*.key
+/app/.env
+/app/.env.backup
+/app/.env.production
+/app/.phpunit.result.cache
+/app/Homestead.json
+/app/Homestead.yaml
+/app/auth.json
+/app/npm-debug.log
+/app/yarn-error.log
+/app/.DS_Store
+/app/Thumbs.db
+
+# Cach�s y logs
+/app/bootstrap/cache/*.php
+!/app/bootstrap/cache/.gitignore
+/app/storage/logs/*.log
+/app/storage/framework/cache/*
+/app/storage/framework/sessions/*
+/app/storage/framework/views/*
+!/app/storage/framework/cache/.gitignore
+!/app/storage/framework/sessions/.gitignore
+!/app/storage/framework/views/.gitignore
+
+# Bases de datos (solo incluir estructura, no datos)
+/app/database/tenants/*.sqlite
+!/app/database/tenants/.gitignore
+/app/storage/tenants_archive/*.sqlite
+/app/storage/backups/tenants/*.gz
+
+# IDE y editores
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+.project
+.buildpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Archivos temporales y de prueba
+/app/vendor.zip
+/csvpuntos.csv
+/puntos.code-workspace
+/codigoDemo.txt
+
+# Scripts de usuario (opcional, descomentar si no quieres subirlos)
+# /scripts/
+
+# Documentaci�n archivada (opcional)
+# /docs/archive/
