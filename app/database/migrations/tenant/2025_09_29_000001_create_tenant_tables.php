@@ -94,8 +94,8 @@ return new class extends Migration
             $table->timestamps();
         });
         
-        // Configuración por defecto
-        DB::connection('tenant')->table('configuracion')->insert([
+        // Configuración por defecto (usar la conexión activa de la migración)
+        DB::table('configuracion')->insert([
             [
                 'key' => 'puntos_por_pesos',
                 'value' => json_encode(['valor' => 100]),

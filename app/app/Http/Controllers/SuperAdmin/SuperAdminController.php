@@ -177,13 +177,44 @@ class SuperAdminController extends Controller
     public function storeTenant(Request $request)
     {
         $data = $request->validate([
-            'rut' => 'required|string|max:20|unique:tenants,rut',
+            'rut' => 'required|string|max:20',
             'nombre_comercial' => 'required|string|max:255',
             'nombre_contacto' => 'nullable|string|max:255',
             'email_contacto' => 'nullable|email|max:255',
             'telefono_contacto' => 'nullable|string|max:50',
             'direccion_contacto' => 'nullable|string|max:500',
         ]);
+
+        $existente = Tenant::withTrashed()->where('rut', $data['rut'])->first();
+
+        if ($existente) {
+            if ($existente->trashed()) {
+                $existente->restore();
+                $existente->update([
+                    'nombre_comercial' => $data['nombre_comercial'],
+                    'nombre_contacto' => $data['nombre_contacto'] ?? null,
+                    'email_contacto' => $data['email_contacto'] ?? null,
+                    'telefono_contacto' => $data['telefono_contacto'] ?? null,
+                    'direccion_contacto' => $data['direccion_contacto'] ?? null,
+                    'estado' => 'activo',
+                ]);
+
+                $request->attributes->set('admin_log_descripcion', "Restauró tenant archivado {$existente->rut}");
+
+                $this->ensureTenantDatabase($existente, true);
+                $credenciales = $this->seedDefaultUsers($existente, false);
+
+                $mensaje = collect($credenciales)
+                    ->map(fn($datos) => "Usuario: {$datos['username']} | Email: {$datos['email']} | Contraseña: {$datos['password']} | Rol: {$datos['rol']}")
+                    ->implode("<br>");
+
+                return back()->with('success', "Tenant restaurado correctamente (antes estaba archivado).<br><pre class='mb-0'>{$mensaje}</pre>");
+            }
+
+            return back()->withErrors([
+                'rut' => 'Ya existe un tenant activo con este RUT. Puedes editarlo desde el listado.',
+            ])->withInput();
+        }
 
         $data['api_key'] = Tenant::generarApiKey();
         $data['estado'] = 'activo';

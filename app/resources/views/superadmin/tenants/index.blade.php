@@ -14,7 +14,10 @@
             @csrf
             <div class="col-md-3">
                 <label class="form-label">RUT</label>
-                <input type="text" name="rut" class="form-control" value="{{ old('rut') }}" required>
+                <input type="text" name="rut" class="form-control @error('rut') is-invalid @enderror" value="{{ old('rut') }}" required>
+                @error('rut')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
             </div>
             <div class="col-md-3">
                 <label class="form-label">Nombre Comercial</label>

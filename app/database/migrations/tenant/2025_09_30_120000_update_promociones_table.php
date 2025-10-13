@@ -12,19 +12,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('promociones', function (Blueprint $table) {
-            if (!Schema::hasColumn('promociones', 'descripcion')) {
+        $cols = collect(DB::select("PRAGMA table_info('promociones')"))
+            ->map(fn($col) => is_array($col) ? $col['name'] : $col->name)
+            ->toArray();
+
+        if (!in_array('descripcion', $cols, true)) {
+            Schema::table('promociones', function (Blueprint $table) {
                 $table->text('descripcion')->nullable()->after('nombre');
-            }
+            });
+        }
 
-            if (Schema::hasColumn('promociones', 'condicion')) {
+        if (in_array('condicion', $cols, true) && !in_array('condiciones', $cols, true)) {
+            Schema::table('promociones', function (Blueprint $table) {
                 $table->renameColumn('condicion', 'condiciones');
-            }
+            });
+        }
 
-            if (!Schema::hasColumn('promociones', 'prioridad')) {
+        if (!in_array('prioridad', $cols, true)) {
+            Schema::table('promociones', function (Blueprint $table) {
                 $table->unsignedTinyInteger('prioridad')->default(50)->after('fecha_fin');
-            }
-        });
+            });
+        }
 
         // Ajustar valores de tipo antiguos
         DB::table('promociones')->update([
