@@ -65,11 +65,14 @@ return new class extends Migration
             $table->decimal('puntos_canjeados', 10, 2);
             $table->decimal('puntos_restantes', 10, 2)->comment('Puntos que quedaron después del canje');
             $table->string('concepto', 500)->nullable()->comment('Descripción del canje');
-            $table->string('autorizado_por', 100)->nullable()->comment('Usuario que autorizó');
+            $table->string('autorizado_por', 100)->nullable()->comment('Usuario que autorizó (id interno o etiqueta)');
+            $table->string('origen', 50)->default('panel')->comment('Origen del canje: panel, api, webhook');
+            $table->string('referencia', 255)->nullable()->comment('Referencia externa: número de factura u observación');
             $table->timestamps();
             
             $table->foreign('cliente_id')->references('id')->on('clientes')->onDelete('cascade');
             $table->index('cliente_id');
+            $table->index('origen');
             $table->index('created_at');
         });
         

@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('email_contacto', 255)->nullable();
             $table->string('telefono_contacto', 50)->nullable();
             $table->string('direccion_contacto', 500)->nullable();
+            $table->json('atributoColores')->nullable()->comment('Paleta de colores personalizable por tenant');
             
             // Configuración de webhook
             $table->string('formato_factura', 50)->default('efactura')->comment('Adaptador a usar: efactura, factupronto, etc');

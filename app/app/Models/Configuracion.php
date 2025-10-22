@@ -52,6 +52,7 @@ class Configuracion extends Model
     const KEY_MONEDA_BASE = 'moneda_base';
     const KEY_TASA_USD = 'tasa_usd';
     const KEY_MONEDA_DESCONOCIDA = 'moneda_desconocida';
+    const KEY_TEMA_COLORES = 'tema_colores';
 
     /**
      * Obtener valor de configuración por clave
@@ -176,6 +177,7 @@ class Configuracion extends Model
             self::KEY_DIAS_VENCIMIENTO => 'Días de validez de los puntos desde la fecha de emisión',
             self::KEY_CONTACTO => 'Datos de contacto del comercio',
             self::KEY_EVENTOS_WHATSAPP => 'Eventos que disparan notificaciones WhatsApp',
+            self::KEY_TEMA_COLORES => 'Personalización de colores del portal',
             default => 'Configuración del sistema',
         };
     }
@@ -236,5 +238,16 @@ class Configuracion extends Model
         self::set(self::KEY_TASA_USD, $tasaUsd);
         $modo = in_array($monedaDesconocida, ['omitir', 'sin_convertir'], true) ? $monedaDesconocida : 'omitir';
         self::set(self::KEY_MONEDA_DESCONOCIDA, $modo);
+    }
+
+    public static function getTemaColores(): array
+    {
+        $colores = self::get(self::KEY_TEMA_COLORES, []);
+        return is_array($colores) ? $colores : [];
+    }
+
+    public static function setTemaColores(array $colores): void
+    {
+        self::set(self::KEY_TEMA_COLORES, $colores);
     }
 }

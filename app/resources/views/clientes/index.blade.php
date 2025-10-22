@@ -227,7 +227,7 @@
                     @endif
                     de <span class="fw-semibold">{{ $clientes->total() }}</span> resultado(s)
                 </small>
-                {{ $clientes->links('pagination::bootstrap-5') }}
+                {{ $clientes->links('vendor.pagination.bootstrap-5') }}
             </div>
             @else
             <div class="text-center py-5">

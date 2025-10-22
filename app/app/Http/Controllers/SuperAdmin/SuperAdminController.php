@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Artisan;
@@ -18,6 +17,7 @@ use App\Services\TenantBackupService;
 use App\Http\Requests\SuperAdmin\ArchiveTenantRequest;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class SuperAdminController extends Controller
 {
@@ -124,7 +124,43 @@ class SuperAdminController extends Controller
             'operario' => 'Operario123!',
         ];
 
-        return view('superadmin.tenants.show', compact('tenant', 'sizeMB', 'backupInfo', 'webhooks', 'demoCredenciales'));
+        $apiBaseUrl = rtrim(config('app.url'), '/') . '/' . $tenant->rut . '/api';
+
+        return view('superadmin.tenants.show', [
+            'tenant' => $tenant,
+            'sizeMB' => $sizeMB,
+            'backupInfo' => $backupInfo,
+            'webhooks' => $webhooks,
+            'demoCredenciales' => $demoCredenciales,
+            'apiBaseUrl' => $apiBaseUrl,
+        ]);
+    }
+
+    public function regenerateTenantApiToken(Request $request, Tenant $tenant)
+    {
+        $token = 'pk_' . Str::random(60);
+        $tenant->api_token = $token;
+        $tenant->api_token_last_used_at = null;
+        $tenant->save();
+
+        $request->attributes->set('admin_log_descripcion', "Regeneró token API para tenant {$tenant->rut}");
+
+        AdminLog::create([
+            'user_id' => $request->user('superadmin')->id ?? null,
+            'accion' => 'api_token_regenerado',
+            'descripcion' => "Se regeneró el token de API del tenant {$tenant->rut}",
+            'ip_address' => $request->ip(),
+            'metadata' => [
+                'tenant_rut' => $tenant->rut,
+            ],
+        ]);
+
+        return back()->with('success', 'Token de API regenerado correctamente. Comparte el nuevo valor con el integrador.');
+    }
+
+    public function apiDocs()
+    {
+        return view('superadmin.docs.api_puntos');
     }
 
     public function backupTenant(Request $request, Tenant $tenant)

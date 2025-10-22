@@ -71,7 +71,15 @@ class ReporteController extends Controller
             $query->orderBy('created_at', $direccion ?? 'desc');
         }
         
-        $clientes = $query->get();
+        $totalClientes = (clone $query)->count();
+        $totalPuntos = (clone $query)->sum('puntos_acumulados');
+        $promedioPuntos = $totalClientes > 0 ? $totalPuntos / $totalClientes : 0;
+
+        if ($formato === 'csv') {
+            $clientes = $query->get();
+        } else {
+            $clientes = $query->paginate(50)->onEachSide(1)->withQueryString();
+        }
         
         // Exportar CSV
         if ($formato === 'csv') {
@@ -85,6 +93,11 @@ class ReporteController extends Controller
             'filtros' => [
                 'estado' => $estado,
                 'orden' => $orden,
+            ],
+            'estadisticas' => [
+                'total' => $totalClientes,
+                'suma_puntos' => $totalPuntos,
+                'promedio' => $promedioPuntos,
             ],
         ]);
     }
@@ -121,7 +134,12 @@ class ReporteController extends Controller
             $query->vencidas();
         }
         
-        $facturas = $query->orderBy('fecha_emision', 'desc')->get();
+        if ($formato === 'csv') {
+            $facturas = $query->orderBy('fecha_emision', 'desc')->get();
+        } else {
+            $facturas = $query->orderBy('fecha_emision', 'desc')
+                ->paginate(50)->onEachSide(1)->withQueryString();
+        }
         
         // Exportar CSV
         if ($formato === 'csv') {
@@ -165,7 +183,12 @@ class ReporteController extends Controller
             $query->whereDate('created_at', '<=', $fechaFin);
         }
         
-        $canjes = $query->orderBy('created_at', 'desc')->get();
+        if ($formato === 'csv') {
+            $canjes = $query->orderBy('created_at', 'desc')->get();
+        } else {
+            $canjes = $query->orderBy('created_at', 'desc')
+                ->paginate(50)->onEachSide(1)->withQueryString();
+        }
         
         // Exportar CSV
         if ($formato === 'csv') {

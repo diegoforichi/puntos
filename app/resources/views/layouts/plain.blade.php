@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--tenant-color-background-start, #667eea) 0%, var(--tenant-color-background-end, #764ba2) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -27,21 +27,17 @@
             overflow: hidden;
         }
         .consulta-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--tenant-color-primary-light, #667eea) 0%, var(--tenant-color-primary, #764ba2) 100%);
             color: white;
             padding: 40px 30px;
             text-align: center;
-        }
-        .consulta-header i {
-            font-size: 4rem;
-            margin-bottom: 15px;
         }
         .consulta-body {
             padding: 40px 30px;
         }
         .info-box {
             background: #f8f9fa;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--tenant-color-secondary, #667eea);
             padding: 20px;
             border-radius: 10px;
             margin-top: 20px;

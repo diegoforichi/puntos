@@ -1,12 +1,11 @@
 @extends('layouts.plain')
 
 @section('content')
-<div class="consulta-container">
+<div class="consulta-container" style="--tenant-color-primary: {{ $tema['primario'] ?? '#2563eb' }}; --tenant-color-primary-light: {{ $tema['primario_claro'] ?? '#3f83f8' }}; --tenant-color-secondary: {{ $tema['secundario'] ?? '#64748b' }};">
     <div class="consulta-card">
-        <div class="consulta-header">
-            <i class="bi bi-trophy-fill"></i>
-            <h2 class="mb-2">Consulta tus Puntos</h2>
-            <p class="mb-0">{{ $tenant->nombre_comercial }}</p>
+        <div class="consulta-header text-center">
+            <h2 class="mb-1">Consulta tus Puntos</h2>
+            <p class="mb-0 text-muted" style="font-size: 0.95rem;">{{ $tenant->nombre_comercial }}</p>
         </div>
 
         <div class="consulta-body">
@@ -61,14 +60,20 @@
             @if($resultado && $resultado['encontrado'] && $detalle)
                 <hr class="my-4">
 
-                <div class="mb-3">
-                    <h5 class="text-primary">
-                        <i class="bi bi-person-circle me-2"></i>
-                        Hola {{ $detalle['cliente']->nombre ?? 'cliente' }}
-                    </h5>
-                    <p class="mb-1">Documento: <strong>{{ $detalle['cliente']->documento }}</strong></p>
-                    <p class="mb-1">Puntos disponibles: <strong>{{ $detalle['stats']['puntos_formateados'] }}</strong></p>
-                    <p class="mb-3">Facturas activas: <strong>{{ $detalle['stats']['total_facturas'] }}</strong></p>
+                <div class="mb-3 text-center">
+                    <h5 class="text-primary mb-2">Hola {{ $detalle['cliente']->nombre ?? 'cliente' }}</h5>
+                    <div class="consulta-saldo">
+                        <small class="text-uppercase text-muted" style="letter-spacing: .1em;">Puntos disponibles</small>
+                <div class="consulta-saldo-val" style="font-size:3.75rem;font-weight:800;color:var(--tenant-color-secondary);">
+                    {{ $detalle['stats']['puntos_formateados'] }}
+                </div>
+                    </div>
+                    <p class="mb-3 text-muted">
+                        Próxima expiración:
+                        <strong>
+                            {{ (isset($detalle['stats']['proxima_expiracion']) && $detalle['stats']['proxima_expiracion']) ? $detalle['stats']['proxima_expiracion']->format('d/m/Y') : '—' }}
+                        </strong>
+                    </p>
                 </div>
 
                 @if($detalle['mensaje'])
@@ -79,19 +84,21 @@
 
                 @if(count($detalle['facturas']))
                     <div class="info-box">
-                        <h6>
-                            <i class="bi bi-receipt me-2"></i>
-                            Facturas con puntos disponibles
-                        </h6>
-                        <ul class="small mb-0">
-                            @foreach($detalle['facturas'] as $factura)
-                                <li>
-                                    Fecha: {{ $factura->fecha_emision->format('d/m/Y') }}
-                                    • Puntos: {{ number_format($factura->puntos_generados) }}
-                                    • Vence: {{ $factura->fecha_vencimiento?->format('d/m/Y') ?? '—' }}
-                                </li>
-                            @endforeach
-                        </ul>
+                        <button class="btn btn-link w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#facturasDetalle" aria-expanded="true" aria-controls="facturasDetalle">
+                            <span><i class="bi bi-receipt me-2"></i>Facturas con puntos disponibles</span>
+                            <span class="badge bg-primary rounded-pill">{{ count($detalle['facturas']) }}</span>
+                        </button>
+                        <div class="collapse show" id="facturasDetalle">
+                            <ul class="small mb-0">
+                                @foreach($detalle['facturas'] as $factura)
+                                    <li class="mb-1">
+                                        <strong>{{ $factura->fecha_emision->format('d/m/Y') }}</strong>
+                                        • {{ number_format($factura->puntos_generados, 2, ',', '.') }} pts
+                                        • Vence: {{ $factura->fecha_vencimiento?->format('d/m/Y') ?? '—' }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
                     </div>
                 @else
                     <div class="alert alert-light text-center">
@@ -103,7 +110,7 @@
                 <div class="info-box mt-3">
                     <h6>
                         <i class="bi bi-envelope-paper me-2"></i>
-                        ¿Quieres que te contactemos?
+                        ¿Quieres actualizar tus datos?
                     </h6>
                     <form action="/{{ $tenant->rut }}/consulta/actualizar-contacto" method="POST" class="row g-2">
                         @csrf
@@ -121,24 +128,30 @@
                             </div>
                         </div>
                         <div class="col-12">
-                            <button type="submit" class="btn btn-outline-primary w-100">
+                        @php($colorSec = $tema['secundario'] ?? '#64748b')
+                        <button type="submit" class="btn btn-outline-primary w-100" style="border-color: {{ $colorSec }}; color: {{ $colorSec }};">
                                 <i class="bi bi-save me-2"></i>
-                                Guardar mis datos
+                                Actualizar datos de contacto
                             </button>
                         </div>
                     </form>
                 </div>
             @endif
 
-            <div class="info-box mt-4">
-                <h6>
-                    <i class="bi bi-info-circle me-2"></i>
-                    ¿Para qué sirven los puntos?
-                </h6>
-                <p class="mb-0 small">
-                    Acumulas puntos con cada compra y luego puedes canjearlos por descuentos.
-                    ¡Mientras más compras, más puntos acumulas!
-                </p>
+            <div class="accordion mt-4" id="consultaFAQ">
+                <div class="accordion-item" style="border:1px solid rgba(0,0,0,.05);">
+                    <h6 class="accordion-header" id="faqHeading">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse" aria-expanded="false" aria-controls="faqCollapse">
+                            <i class="bi bi-info-circle me-2"></i>¿Para qué sirven los puntos?
+                        </button>
+                    </h6>
+                    <div id="faqCollapse" class="accordion-collapse collapse" aria-labelledby="faqHeading" data-bs-parent="#consultaFAQ">
+                        <div class="accordion-body small">
+                            Acumulas puntos con cada compra y luego puedes canjearlos por descuentos en {{ $tenant->nombre_comercial }}.
+                            ¡Mientras más compras, más puntos acumulas!
+                        </div>
+                    </div>
+                </div>
             </div>
 
             @if(!empty($contacto['telefono']) || !empty($contacto['email']) || !empty($contacto['direccion']))

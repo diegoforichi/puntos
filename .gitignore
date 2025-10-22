@@ -30,8 +30,14 @@
 # Bases de datos (solo incluir estructura, no datos)
 /app/database/tenants/*.sqlite
 !/app/database/tenants/.gitignore
+/app/storage/tenants/*.sqlite
+/app/storage/tenants/**
 /app/storage/tenants_archive/*.sqlite
-/app/storage/backups/tenants/*.gz
+/app/storage/backups/**
+
+# Artefactos de deploy y empaquetados
+/deploy_api_*/**
+*.zip
 
 # IDE y editores
 /.idea/

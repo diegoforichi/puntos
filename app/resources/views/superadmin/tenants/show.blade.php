@@ -153,6 +153,92 @@ Usuario: operario{{ $tenant->usernameSuffix() }} | Email: operario@puntos.local 
 
     <div class="col-12">
         <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-puzzle me-2"></i>Integración API de Puntos</h5>
+                <span class="badge bg-primary">Nuevo</span>
+            </div>
+            <div class="card-body">
+                @if(!$tenant->api_token)
+                    <div class="alert alert-warning d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <span>Este tenant aún no tiene token de API asignado. Genera uno para habilitar la integración.</span>
+                    </div>
+                @endif
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-4">
+                        <label class="form-label">Base URL</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" value="{{ $apiBaseUrl }}" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText('{{ $apiBaseUrl }}')">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Añade <code>/clientes/{documento}</code> o <code>/clientes/{documento}/canjes</code>.</small>
+                    </div>
+
+                    <div class="col-lg-5">
+                        <label class="form-label">Token de API</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" value="{{ $tenant->api_token ?? '—' }}" readonly>
+                            <button class="btn btn-outline-secondary {{ $tenant->api_token ? '' : 'disabled' }}" type="button" @if($tenant->api_token) onclick="navigator.clipboard.writeText('{{ $tenant->api_token }}')" @endif>
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Usa el header <code>Authorization: Bearer TOKEN</code>.</small>
+                        @if($tenant->api_token_last_used_at)
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-clock-history me-1"></i>
+                                Último uso: {{ $tenant->api_token_last_used_at->timezone('America/Montevideo')->format('d/m/Y H:i') }}
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="col-lg-3 text-lg-end">
+                        <form action="{{ route('superadmin.tenants.regenerate-api-token', $tenant) }}" method="POST" onsubmit="return confirm('Esto invalidará el token actual. Las integraciones deberán actualizarlo. ¿Deseas continuar?');">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-arrow-repeat me-1"></i> Regenerar token
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="bg-light border rounded p-3 h-100">
+                            <h6 class="fw-semibold">Consultar puntos</h6>
+                            <pre class="small mb-0">GET {{ $apiBaseUrl }}/clientes/{documento}
+Authorization: Bearer {{ $tenant->api_token ?? 'TOKEN' }}</pre>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light border rounded p-3 h-100">
+                            <h6 class="fw-semibold">Canjear puntos</h6>
+                            <pre class="small mb-0">POST {{ $apiBaseUrl }}/clientes/{documento}/canjes
+Authorization: Bearer {{ $tenant->api_token ?? 'TOKEN' }}
+Content-Type: application/json
+{
+  "puntos_a_canjear": 50,
+  "descripcion": "Descuento en factura 001-123"
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <a href="{{ route('superadmin.docs.api-puntos') }}" class="btn btn-link p-0">
+                        <i class="bi bi-file-earmark-text me-1"></i>Ver documentación completa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
             <div class="card-header bg-white">
                 <h5 class="mb-0"><i class="bi bi-plug me-2"></i>Integración Webhook</h5>
             </div>

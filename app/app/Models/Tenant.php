@@ -15,6 +15,7 @@ class Tenant extends Model
         'rut',
         'nombre_comercial',
         'api_key',
+        'api_token',
         'estado',
         'sqlite_path',
         'nombre_contacto',
@@ -27,6 +28,7 @@ class Tenant extends Model
         'puntos_generados_total',
         'ultima_respaldo',
         'ultima_migracion',
+        'atributoColores',
     ];
 
     protected $casts = [
@@ -36,6 +38,7 @@ class Tenant extends Model
         'ultimo_webhook' => 'datetime',
         'ultima_respaldo' => 'datetime',
         'ultima_migracion' => 'datetime',
+        'api_token_last_used_at' => 'datetime',
     ];
 
     public function usernameSuffix(): string
@@ -80,5 +83,21 @@ class Tenant extends Model
     public function scopeActivos($query)
     {
         return $query->where('estado', 'activo');
+    }
+
+    public function getColoresAttribute(): array
+    {
+        $json = $this->atributoColores ?? null;
+        if (!$json) {
+            return [];
+        }
+
+        $decoded = json_decode($json, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    public function setColoresAttribute($value): void
+    {
+        $this->atributoColores = json_encode($value ?? [], JSON_UNESCAPED_UNICODE);
     }
 }

@@ -56,10 +56,13 @@ Route::prefix('superadmin')->group(function () {
         Route::post('/tenants/{tenant}/archive', [SuperAdminController::class, 'archiveTenant'])->name('superadmin.tenants.archive');
         Route::put('/tenants/{tenant}', [SuperAdminController::class, 'updateTenant'])->name('superadmin.tenants.update');
         Route::post('/tenants/{tenant}/regenerate-key', [SuperAdminController::class, 'regenerateTenantKey'])->name('superadmin.tenants.regenerate');
+        Route::post('/tenants/{tenant}/regenerate-api-token', [SuperAdminController::class, 'regenerateTenantApiToken'])->name('superadmin.tenants.regenerate-api-token');
         Route::post('/tenants/{tenant}/toggle', [SuperAdminController::class, 'toggleTenant'])->name('superadmin.tenants.toggle');
         Route::post('/tenants/{tenant}/seed-users', [SuperAdminController::class, 'seedTenantUsers'])->name('superadmin.tenants.seed-users');
         Route::post('/tenants/{tenant}/ensure-db', [SuperAdminController::class, 'ensureTenantDbManually'])->name('superadmin.tenants.ensure-db');
         Route::post('/tenants/{tenant}/test-webhook', \App\Http\Controllers\SuperAdmin\TenantTestWebhookController::class)->name('superadmin.tenants.test-webhook');
+
+        Route::get('/docs/api-puntos', [SuperAdminController::class, 'apiDocs'])->name('superadmin.docs.api-puntos');
 
         Route::get('/webhooks', [SuperAdminController::class, 'webhooks'])->name('superadmin.webhooks');
     });
@@ -134,6 +137,7 @@ Route::prefix('{tenant}')->middleware(['tenant'])->group(function () {
             Route::post('/configuracion/vencimiento', [ConfiguracionController::class, 'actualizarVencimiento'])->name('tenant.configuracion.vencimiento');
             Route::post('/configuracion/contacto', [ConfiguracionController::class, 'actualizarContacto'])->name('tenant.configuracion.contacto');
             Route::post('/configuracion/whatsapp', [ConfiguracionController::class, 'actualizarWhatsApp'])->name('tenant.configuracion.whatsapp');
+            Route::post('/configuracion/tema', [ConfiguracionController::class, 'actualizarTema'])->name('tenant.configuracion.tema');
         Route::post('/configuracion/acumulacion', [ConfiguracionController::class, 'actualizarAcumulacion'])->name('tenant.configuracion.acumulacion');
         Route::post('/configuracion/moneda', [ConfiguracionController::class, 'actualizarMoneda'])->name('tenant.configuracion.moneda');
             Route::post('/configuracion/compactar', [ConfiguracionController::class, 'compactarBaseDatos'])->name('tenant.configuracion.compactar');

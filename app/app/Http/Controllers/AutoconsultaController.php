@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Cliente;
 use App\Models\Factura;
 use App\Models\Configuracion;
+use Carbon\Carbon;
 
 /**
  * Controlador de Autoconsulta Pública
@@ -45,14 +47,15 @@ class AutoconsultaController extends Controller
                         ->orderBy('fecha_vencimiento', 'asc')
                         ->get();
 
+                    $stats = $this->calcularStats($cliente, $facturasActivas);
+
                     $detalle = [
                         'cliente' => $cliente,
                         'facturas' => $facturasActivas,
-                        'stats' => $this->calcularStats($cliente, $facturasActivas),
+                        'stats' => $stats,
                         'mensaje' => $resultado['mensaje'] ?? null,
                     ];
                 } else {
-                    // Si el cliente ya no existe, limpiar sesión
                     session()->forget($sessionKey);
                     $resultado = null;
                 }
@@ -62,13 +65,16 @@ class AutoconsultaController extends Controller
         }
 
         $contacto = Configuracion::getContacto();
+        $temaColores = Configuracion::getTemaColores();
 
         return view('autoconsulta.index', [
             'tenant' => $tenant,
             'contacto' => $contacto,
+            'nombreComercio' => $tenant->nombre_comercial,
             'resultado' => $resultado,
             'detalle' => $detalle,
             'documento' => $resultado['documento'] ?? null,
+            'tema' => $temaColores,
         ]);
     }
 
@@ -176,13 +182,23 @@ class AutoconsultaController extends Controller
 
     private function calcularStats(Cliente $cliente, $facturasActivas): array
     {
+        $proximaExpiracionRaw = DB::connection('tenant')
+            ->table('facturas')
+            ->where('cliente_id', $cliente->id)
+            ->where('puntos_disponibles', '>', 0)
+            ->where('fecha_vencimiento', '>=', date('Y-m-d 00:00:00'))
+            ->orderBy('fecha_vencimiento', 'asc')
+            ->value('fecha_vencimiento');
+
+        $proximaExpiracion = $proximaExpiracionRaw
+            ? Carbon::parse($proximaExpiracionRaw, 'America/Montevideo')
+            : null;
+
         return [
             'puntos_disponibles' => $cliente->puntos_acumulados,
             'puntos_formateados' => $cliente->puntos_formateados,
             'total_facturas' => $facturasActivas->count(),
-            'facturas_por_vencer' => $cliente->facturas()->porVencer(30)->count(),
-            'puntos_generados_total' => $cliente->facturas()->sum('puntos_generados'),
-            'puntos_canjeados_total' => $cliente->puntosCanjeados()->sum('puntos_canjeados'),
+            'proxima_expiracion' => $proximaExpiracion,
         ];
     }
 }

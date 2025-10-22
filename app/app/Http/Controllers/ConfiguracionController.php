@@ -43,6 +43,7 @@ class ConfiguracionController extends Controller
             'tasa_usd' => Configuracion::getTasaUsd(),
             'moneda_desconocida' => Configuracion::getMonedaDesconocida(),
         ];
+        $temaConfig = Configuracion::getTemaColores();
         
         return view('configuracion.index', [
             'tenant' => $tenant,
@@ -53,6 +54,7 @@ class ConfiguracionController extends Controller
             'eventosWhatsApp' => $eventosWhatsApp,
             'configAcumulacion' => $configAcumulacion,
             'configMoneda' => $configMoneda,
+            'temaConfig' => $temaConfig,
         ]);
     }
 
@@ -64,6 +66,7 @@ class ConfiguracionController extends Controller
     public function actualizarPuntos(Request $request)
     {
         $usuario = $request->attributes->get('usuario');
+        session()->flash('tab', 'puntos');
         
         $validated = $request->validate([
             'puntos_por_pesos' => 'required|numeric|min:1',
@@ -85,7 +88,10 @@ class ConfiguracionController extends Controller
             ['puntos_por_pesos' => $validated['puntos_por_pesos']]
         );
         
-        return back()->with('success', 'Configuración de puntos actualizada correctamente');
+        return back()->with([
+            'success' => 'Configuración de puntos actualizada correctamente',
+            'tab' => 'puntos',
+        ]);
     }
 
     /**
@@ -96,6 +102,7 @@ class ConfiguracionController extends Controller
     public function actualizarVencimiento(Request $request)
     {
         $usuario = $request->attributes->get('usuario');
+        session()->flash('tab', 'puntos');
         
         $validated = $request->validate([
             'dias_vencimiento' => 'required|integer|min:1',
@@ -117,7 +124,10 @@ class ConfiguracionController extends Controller
             ['dias_vencimiento' => $validated['dias_vencimiento']]
         );
         
-        return back()->with('success', 'Configuración de vencimiento actualizada correctamente');
+        return back()->with([
+            'success' => 'Configuración de vencimiento actualizada correctamente',
+            'tab' => 'puntos',
+        ]);
     }
 
     /**
@@ -128,6 +138,7 @@ class ConfiguracionController extends Controller
     public function actualizarContacto(Request $request)
     {
         $usuario = $request->attributes->get('usuario');
+        session()->flash('tab', 'contacto');
         
         $validated = $request->validate([
             'nombre_comercial' => 'required|string|max:255',
@@ -155,7 +166,10 @@ class ConfiguracionController extends Controller
             ['contacto' => $validated]
         );
         
-        return back()->with('success', 'Datos de contacto actualizados correctamente');
+        return back()->with([
+            'success' => 'Datos de contacto actualizados correctamente',
+            'tab' => 'contacto',
+        ]);
     }
 
     /**
@@ -166,6 +180,7 @@ class ConfiguracionController extends Controller
     public function actualizarWhatsApp(Request $request)
     {
         $usuario = $request->attributes->get('usuario');
+        session()->flash('tab', 'whatsapp');
         
         $eventos = [
             'puntos_canjeados' => $request->has('puntos_canjeados'),
@@ -184,7 +199,10 @@ class ConfiguracionController extends Controller
             ['eventos' => $eventos]
         );
         
-        return back()->with('success', 'Configuración de WhatsApp actualizada correctamente');
+        return back()->with([
+            'success' => 'Configuración de WhatsApp actualizada correctamente',
+            'tab' => 'whatsapp',
+        ]);
     }
 
     /**
@@ -195,6 +213,7 @@ class ConfiguracionController extends Controller
     public function actualizarAcumulacion(Request $request)
     {
         $usuario = $request->attributes->get('usuario');
+        session()->flash('tab', 'puntos');
 
         $excluirEfacturas = $request->has('acumulacion_excluir_efacturas');
 
@@ -209,12 +228,16 @@ class ConfiguracionController extends Controller
             ]
         );
 
-        return back()->with('success', 'Reglas de acumulación actualizadas correctamente');
+        return back()->with([
+            'success' => 'Reglas de acumulación actualizadas correctamente',
+            'tab' => 'puntos',
+        ]);
     }
 
     public function actualizarMoneda(Request $request)
     {
         $usuario = $request->attributes->get('usuario');
+        session()->flash('tab', 'puntos');
 
         $validated = $request->validate([
             'moneda_base' => 'required|string|max:10',
@@ -235,7 +258,40 @@ class ConfiguracionController extends Controller
             $validated
         );
 
-        return back()->with('success', 'Configuración de moneda actualizada correctamente');
+        return back()->with([
+            'success' => 'Configuración de moneda actualizada correctamente',
+            'tab' => 'puntos',
+        ]);
+    }
+
+    public function actualizarTema(Request $request)
+    {
+        $usuario = $request->attributes->get('usuario');
+        session()->flash('tab', 'tema');
+
+        $validated = $request->validate([
+            'color_primario' => 'required|string|max:20',
+            'color_primario_claro' => 'required|string|max:20',
+            'color_secundario' => 'required|string|max:20',
+        ]);
+
+        Configuracion::setTemaColores([
+            'primario' => $validated['color_primario'],
+            'primario_claro' => $validated['color_primario_claro'],
+            'secundario' => $validated['color_secundario'],
+        ]);
+
+        Actividad::registrar(
+            $usuario->id,
+            Actividad::ACCION_CONFIG,
+            'Actualizó la paleta de colores del tenant',
+            $validated
+        );
+
+        return back()->with([
+            'success' => 'Colores actualizados correctamente.',
+            'tab' => 'tema',
+        ]);
     }
 
     /**
@@ -247,6 +303,7 @@ class ConfiguracionController extends Controller
     {
         $tenant = $request->attributes->get('tenant');
         $usuario = $request->attributes->get('usuario');
+        session()->flash('tab', 'mantenimiento');
 
         try {
             $mesesAntiguedad = 12;
@@ -259,7 +316,10 @@ class ConfiguracionController extends Controller
                 ->count();
 
             if ($antiguasCount === 0) {
-                return back()->with('info', 'No hay facturas antiguas para eliminar.');
+                return back()->with([
+                    'info' => 'No hay facturas antiguas para eliminar.',
+                    'tab' => 'mantenimiento',
+                ]);
             }
 
             // Eliminar facturas antiguas
@@ -291,7 +351,10 @@ class ConfiguracionController extends Controller
                 ]
             );
 
-            return back()->with('success', "Base de datos compactada exitosamente. Se eliminaron {$antiguasCount} facturas antiguas.");
+            return back()->with([
+                'success' => "Base de datos compactada exitosamente. Se eliminaron {$antiguasCount} facturas antiguas.",
+                'tab' => 'mantenimiento',
+            ]);
 
         } catch (\Exception $e) {
             \Log::error('Error compactando base de datos', [
@@ -299,7 +362,10 @@ class ConfiguracionController extends Controller
                 'error' => $e->getMessage()
             ]);
 
-            return back()->with('error', 'Error al compactar la base de datos: ' . $e->getMessage());
+            return back()->with([
+                'error' => 'Error al compactar la base de datos: ' . $e->getMessage(),
+                'tab' => 'mantenimiento',
+            ]);
         }
     }
 }

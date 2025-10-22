@@ -4,31 +4,40 @@
 @section('page-title', 'Configuración del Sistema')
 
 @section('content')
+@php
+    $activeTab = session('tab', 'puntos');
+@endphp
 <div class="container-fluid">
     <!-- Tabs de Configuración -->
     <ul class="nav nav-tabs mb-4" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#puntos" type="button">
+            <button class="nav-link {{ $activeTab === 'puntos' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#puntos" type="button">
                 <i class="bi bi-award me-2"></i>
                 Puntos
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#contacto" type="button">
+            <button class="nav-link {{ $activeTab === 'contacto' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#contacto" type="button">
                 <i class="bi bi-building me-2"></i>
                 Datos de Contacto
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#whatsapp" type="button">
+            <button class="nav-link {{ $activeTab === 'whatsapp' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#whatsapp" type="button">
                 <i class="bi bi-whatsapp me-2"></i>
                 WhatsApp
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#mantenimiento" type="button">
+            <button class="nav-link {{ $activeTab === 'mantenimiento' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#mantenimiento" type="button">
                 <i class="bi bi-tools me-2"></i>
                 Mantenimiento
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {{ $activeTab === 'tema' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#tema" type="button">
+                <i class="bi bi-palette me-2"></i>
+                Apariencia
             </button>
         </li>
     </ul>
@@ -36,7 +45,7 @@
     <!-- Tab Content -->
     <div class="tab-content">
         <!-- Tab Puntos -->
-        <div class="tab-pane fade show active" id="puntos" role="tabpanel">
+        <div class="tab-pane fade {{ $activeTab === 'puntos' ? 'show active' : '' }}" id="puntos" role="tabpanel">
             <div class="row">
                 <!-- Puntos por Pesos -->
                 <div class="col-md-6 mb-4">
@@ -210,7 +219,7 @@
         </div>
 
         <!-- Tab Contacto -->
-        <div class="tab-pane fade" id="contacto" role="tabpanel">
+        <div class="tab-pane fade {{ $activeTab === 'contacto' ? 'show active' : '' }}" id="contacto" role="tabpanel">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     <div class="card">
@@ -290,7 +299,7 @@
         </div>
 
         <!-- Tab WhatsApp -->
-        <div class="tab-pane fade" id="whatsapp" role="tabpanel">
+        <div class="tab-pane fade {{ $activeTab === 'whatsapp' ? 'show active' : '' }}" id="whatsapp" role="tabpanel">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     <div class="card">
@@ -392,7 +401,7 @@
         </div>
 
         <!-- Tab Mantenimiento -->
-        <div class="tab-pane fade" id="mantenimiento" role="tabpanel">
+        <div class="tab-pane fade {{ $activeTab === 'mantenimiento' ? 'show active' : '' }}" id="mantenimiento" role="tabpanel">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     <div class="card border-warning">
@@ -437,6 +446,128 @@
                 </div>
             </div>
         </div>
+
+        <!-- Tab Apariencia -->
+        <div class="tab-pane fade {{ $activeTab === 'tema' ? 'show active' : '' }}" id="tema" role="tabpanel">
+            <div class="row justify-content-center">
+                <div class="col-lg-7 col-xl-6">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white d-flex align-items-center">
+                            <div>
+                                <h5 class="mb-1">
+                                    <i class="bi bi-palette me-2 text-primary"></i>
+                                    Apariencia del Tenant
+                                </h5>
+                                <small class="text-muted">Los colores se aplican al panel interno y al portal público.</small>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <form action="/{{ $tenant->rut }}/configuracion/tema" method="POST" autocomplete="off" id="formTema">
+                                @csrf
+
+                                <div class="row g-4">
+                                    <div class="col-md-4">
+                                        <label for="colorPrimario" class="form-label">Color primario</label>
+                                        <div class="input-group input-group-color">
+                                            <span class="input-group-text p-0">
+                                                <input type="color" class="form-control form-control-color" id="colorPrimario" name="color_primario" value="{{ old('color_primario', $temaConfig['primario'] ?? '#2563eb') }}" required>
+                                            </span>
+                                            <input type="text" class="form-control" value="{{ old('color_primario', $temaConfig['primario'] ?? '#2563eb') }}" readonly>
+                                        </div>
+                                        <small class="text-muted">Barra lateral, botones y elementos destacados.</small>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="colorPrimarioClaro" class="form-label">Color secundario</label>
+                                        <div class="input-group input-group-color">
+                                            <span class="input-group-text p-0">
+                                                <input type="color" class="form-control form-control-color" id="colorPrimarioClaro" name="color_primario_claro" value="{{ old('color_primario_claro', $temaConfig['primario_claro'] ?? '#3f83f8') }}" required>
+                                            </span>
+                                            <input type="text" class="form-control" value="{{ old('color_primario_claro', $temaConfig['primario_claro'] ?? '#3f83f8') }}" readonly>
+                                        </div>
+                                        <small class="text-muted">Degradados y fondos suaves.</small>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="colorSecundario" class="form-label">Color acento</label>
+                                        <div class="input-group input-group-color">
+                                            <span class="input-group-text p-0">
+                                                <input type="color" class="form-control form-control-color" id="colorSecundario" name="color_secundario" value="{{ old('color_secundario', $temaConfig['secundario'] ?? '#64748b') }}" required>
+                                            </span>
+                                            <input type="text" class="form-control" value="{{ old('color_secundario', $temaConfig['secundario'] ?? '#64748b') }}" readonly>
+                                        </div>
+                                        <small class="text-muted">Badges, detalles y enlaces secundarios.</small>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info mt-4">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Tip: el color primario define la barra lateral, botones, enlaces destacados y el fondo superior del portal de autoconsulta.
+                                </div>
+
+                                <div class="d-flex justify-content-between gap-3 mt-3">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="restaurarTemaDefault()">
+                                        Restaurar colores por defecto
+                                    </button>
+                                    <button type="submit" class="btn btn-primary flex-fill">
+                                        <i class="bi bi-check-lg me-2"></i>
+                                        Guardar colores del tenant
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    const defaultsTema = {
+        primario: '#2563eb',
+        primario_claro: '#3f83f8',
+        secundario: '#64748b',
+    };
+
+    function restaurarTemaDefault() {
+        const form = document.getElementById('formTema');
+        if (!form) return;
+
+        form.querySelector('#colorPrimario').value = defaultsTema.primario;
+        form.querySelector('#colorPrimarioClaro').value = defaultsTema.primario_claro;
+        form.querySelector('#colorSecundario').value = defaultsTema.secundario;
+        actualizarInputsHex();
+    }
+
+    function actualizarInputsHex() {
+        const form = document.getElementById('formTema');
+        if (!form) return;
+
+        ['Primario', 'PrimarioClaro', 'Secundario'].forEach(function(campo) {
+            const colorInput = form.querySelector('#color' + campo);
+            const textInput = colorInput?.closest('.input-group')?.querySelector('input[type="text"]');
+            if (colorInput && textInput) {
+                textInput.value = colorInput.value.toUpperCase();
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        actualizarInputsHex();
+        document.querySelectorAll('#formTema input[type="color"]').forEach(function (input) {
+            input.addEventListener('input', actualizarInputsHex);
+        });
+
+        // Normalizar pestaña activa después de submit
+        const activeTab = '{{ $activeTab }}';
+        const trigger = document.querySelector(`[data-bs-target="#${activeTab}"]`);
+        if (trigger && !trigger.classList.contains('active')) {
+            const tab = new bootstrap.Tab(trigger);
+            tab.show();
+        }
+    });
+</script>
+@endpush

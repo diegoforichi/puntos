@@ -99,5 +99,20 @@
             @endif
         </div>
     </div>
+
+    @if($facturas->count() > 0)
+    <div class="card mt-3">
+        <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <small class="text-muted">
+                Mostrando
+                <span class="fw-semibold">
+                    {{ $facturas->firstItem() }}-{{ $facturas->lastItem() }}
+                </span>
+                de <span class="fw-semibold">{{ $facturas->total() }}</span> factura(s)
+            </small>
+            {{ $facturas->links('vendor.pagination.bootstrap-5') }}
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

@@ -18,8 +18,9 @@
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary-color: #2563eb;
-            --secondary-color: #64748b;
+            --primary-color: {{ $tenantTema['primario'] ?? '#2563eb' }};
+            --primary-color-light: {{ $tenantTema['primario_claro'] ?? '#3f83f8' }};
+            --secondary-color: {{ $tenantTema['secundario'] ?? '#64748b' }};
             --success-color: #10b981;
             --danger-color: #ef4444;
             --warning-color: #f59e0b;
@@ -32,7 +33,7 @@
         
         .sidebar {
             min-height: 100vh;
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            background: var(--primary-color);
             color: white;
             position: fixed;
             top: 0;
@@ -106,7 +107,7 @@
         }
         
         .sidebar .nav-link.active {
-            background-color: rgba(37, 99, 235, 0.2);
+            background-color: rgba(255, 255, 255, 0.15);
             color: white;
             border-left-color: var(--primary-color);
         }

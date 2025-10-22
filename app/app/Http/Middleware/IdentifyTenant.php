@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use App\Models\Tenant;
+use App\Models\Configuracion;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +34,13 @@ class IdentifyTenant
         $tenantRut = $request->route('tenant');
 
         if (!$tenantRut) {
+            if ($request->is('*/api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Tenant no especificado',
+                ], 400);
+            }
+
             return redirect('/')->with('error', 'Tenant no especificado');
         }
 
@@ -44,6 +52,13 @@ class IdentifyTenant
             ->first();
 
         if (!$tenant) {
+            if ($request->is('*/api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Comercio no encontrado o inactivo',
+                ], 404);
+            }
+
             return redirect('/')
                 ->with('error', 'Comercio no encontrado o inactivo');
         }
@@ -51,6 +66,13 @@ class IdentifyTenant
         // Verificar que existe la base SQLite
         $sqlitePath = $tenant->getSqlitePath();
         if (!file_exists($sqlitePath)) {
+            if ($request->is('*/api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Base de datos del comercio no encontrada',
+                ], 500);
+            }
+
             return redirect('/')
                 ->with('error', 'Base de datos del comercio no encontrada');
         }
@@ -69,9 +91,14 @@ class IdentifyTenant
 
         // Guardar tenant en la request para uso en controladores
         $request->attributes->add(['tenant' => $tenant]);
+
+        // Cargar configuración de colores del tenant
+        $temaColores = Configuracion::getTemaColores();
+        $request->attributes->set('tenant_tema', $temaColores);
         
-        // Compartir tenant con todas las vistas
+        // Compartir tenant y tema con todas las vistas
         view()->share('tenant', $tenant);
+        view()->share('tenantTema', $temaColores);
 
         return $next($request);
     }

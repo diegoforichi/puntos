@@ -227,7 +227,7 @@ class ClienteController extends Controller
         // Obtener todas las facturas paginadas
         $facturas = $cliente->facturas()
             ->orderBy('fecha_emision', 'desc')
-            ->paginate(20);
+            ->paginate(20)->withQueryString();
         
         return view('clientes.facturas', [
             'tenant' => $tenant,

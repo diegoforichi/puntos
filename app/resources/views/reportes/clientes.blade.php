@@ -76,7 +76,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="text-muted mb-2">Total Clientes</h6>
-                    <h3 class="mb-0">{{ $clientes->count() }}</h3>
+                    <h3 class="mb-0">{{ number_format($estadisticas['total']) }}</h3>
                 </div>
             </div>
         </div>
@@ -84,7 +84,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="text-muted mb-2">Puntos Totales</h6>
-                    <h3 class="mb-0">{{ number_format($clientes->sum('puntos_acumulados'), 2, ',', '.') }}</h3>
+                    <h3 class="mb-0">{{ number_format($estadisticas['suma_puntos'], 2, ',', '.') }}</h3>
                 </div>
             </div>
         </div>
@@ -92,9 +92,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="text-muted mb-2">Promedio por Cliente</h6>
-                    <h3 class="mb-0">
-                        {{ $clientes->count() > 0 ? number_format($clientes->avg('puntos_acumulados'), 2, ',', '.') : '0,00' }}
-                    </h3>
+                    <h3 class="mb-0">{{ number_format($estadisticas['promedio'], 2, ',', '.') }}</h3>
                 </div>
             </div>
         </div>
@@ -146,5 +144,20 @@
             @endif
         </div>
     </div>
+
+    @if($clientes->count() > 0)
+    <div class="card mt-3">
+        <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <small class="text-muted">
+                Mostrando
+                <span class="fw-semibold">
+                    {{ $clientes->count() ? $clientes->firstItem() : 0 }}-{{ $clientes->count() ? $clientes->lastItem() : 0 }}
+                </span>
+                de <span class="fw-semibold">{{ $clientes->total() }}</span> cliente(s)
+            </small>
+            {{ $clientes->links('vendor.pagination.bootstrap-5') }}
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

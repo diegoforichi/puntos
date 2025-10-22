@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modelo PuntosCanjeado
- * 
+ *
  * Representa un registro de canje de puntos
  * Almacena histórico de todas las redenciones
- * 
+ *
  * Tabla: puntos_canjeados (SQLite del tenant)
  */
 class PuntosCanjeado extends Model
@@ -28,6 +29,8 @@ class PuntosCanjeado extends Model
         'puntos_restantes',
         'concepto',
         'autorizado_por',
+        'origen',
+        'referencia',
     ];
 
     /**
@@ -41,24 +44,29 @@ class PuntosCanjeado extends Model
         'updated_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (!$model->origen) {
+                $model->origen = 'panel';
+            }
+        });
+    }
+
     /**
      * Relación: Canje pertenece a un cliente
      * 
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function cliente()
+    public function cliente(): BelongsTo
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
     }
 
-    /**
-     * Relación: Canje fue autorizado por un usuario
-     * 
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function autorizadoPor()
+    public function autorizadoPor(): BelongsTo
     {
-        return $this->belongsTo(Usuario::class, 'autorizado_por');
+        return $this->belongsTo(Usuario::class, 'autorizado_por')
+            ->withDefault(['nombre' => 'Sistema']);
     }
 
     /**

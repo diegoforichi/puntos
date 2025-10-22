@@ -70,5 +70,6 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\CheckRole::class,
         'superadmin.auth' => \App\Http\Middleware\SuperAdminAuthenticate::class,
         'superadmin.guest' => \App\Http\Middleware\SuperAdminRedirectIfAuthenticated::class,
+        'tenant.api' => \App\Http\Middleware\AuthenticateTenantApiToken::class,
     ];
 }
