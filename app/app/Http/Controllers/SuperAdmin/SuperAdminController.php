@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Validation\Rule;
 use App\Services\TenantBackupService;
 use App\Http\Requests\SuperAdmin\ArchiveTenantRequest;
 use Illuminate\Support\Facades\Mail;
@@ -134,6 +135,23 @@ class SuperAdminController extends Controller
             'demoCredenciales' => $demoCredenciales,
             'apiBaseUrl' => $apiBaseUrl,
         ]);
+    }
+
+    public function updateTenantNotifications(Request $request, Tenant $tenant)
+    {
+        $data = $request->validate([
+            'allow_custom_whatsapp' => ['nullable', Rule::in(['on'])],
+            'allow_custom_email' => ['nullable', Rule::in(['on'])],
+        ]);
+
+        $tenant->forceFill([
+            'allow_custom_whatsapp' => isset($data['allow_custom_whatsapp']),
+            'allow_custom_email' => isset($data['allow_custom_email']),
+        ])->save();
+
+        $request->attributes->set('admin_log_descripcion', "Actualizó permisos de credenciales personalizadas para {$tenant->rut}");
+
+        return back()->with('success', 'Preferencias de notificaciones actualizadas correctamente.');
     }
 
     public function regenerateTenantApiToken(Request $request, Tenant $tenant)

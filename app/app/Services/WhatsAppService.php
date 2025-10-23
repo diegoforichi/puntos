@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\SystemConfig;
 use App\Models\Tenant;
+use App\Services\NotificationConfigResolver;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +15,8 @@ class WhatsAppService
      */
     public static function enviar(string $telefono, string $mensaje, ?Tenant $tenant = null): array
     {
-        $config = SystemConfig::getWhatsAppConfig();
+        $resolver = app(NotificationConfigResolver::class);
+        $config = $resolver->resolveWhatsAppConfig($tenant);
 
         if (!($config['activo'] ?? false)) {
             return [

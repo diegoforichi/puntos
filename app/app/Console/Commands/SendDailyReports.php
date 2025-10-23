@@ -5,13 +5,19 @@ namespace App\Console\Commands;
 use App\Models\Tenant;
 use App\Mail\ResumenDiario;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Services\NotificationConfigResolver;
 
 class SendDailyReports extends Command
 {
     protected $signature = 'tenant:send-daily-reports';
     protected $description = 'Envía resumen diario de actividad por email a todos los tenants activos';
+
+    public function __construct(private NotificationConfigResolver $configResolver)
+    {
+        parent::__construct();
+    }
 
     public function handle(): int
     {
@@ -32,6 +38,19 @@ class SendDailyReports extends Command
                 }
 
                 $stats = $this->obtenerEstadisticas($tenant);
+
+                $config = $this->configResolver->resolveEmailConfig($tenant);
+
+                Mail::mailer('smtp')->setSymfonyMailer(null);
+                config([
+                    'mail.mailers.smtp.host' => $config['host'] ?? null,
+                    'mail.mailers.smtp.port' => $config['port'] ?? 587,
+                    'mail.mailers.smtp.username' => $config['username'] ?? null,
+                    'mail.mailers.smtp.password' => $config['password'] ?? null,
+                    'mail.mailers.smtp.encryption' => $config['encryption'] ?? null,
+                    'mail.from.address' => $config['from_address'] ?? config('mail.from.address'),
+                    'mail.from.name' => $config['from_name'] ?? config('mail.from.name'),
+                ]);
 
                 Mail::to($emailContacto)->send(new ResumenDiario($tenant, $stats));
 

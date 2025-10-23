@@ -119,6 +119,37 @@ Usuario: operario{{ $tenant->usernameSuffix() }} | Email: operario@puntos.local 
     <div class="col-lg-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-broadcast me-2"></i>Notificaciones Personalizadas</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Permite que el tenant configure sus propias credenciales para WhatsApp y Email.</p>
+                <form action="{{ route('superadmin.tenants.notifications', $tenant) }}" method="POST" class="vstack gap-3">
+                    @csrf
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="allowCustomWhatsapp" name="allow_custom_whatsapp" {{ $tenant->allow_custom_whatsapp ? 'checked' : '' }}>
+                        <label class="form-check-label" for="allowCustomWhatsapp">
+                            <strong>WhatsApp propio</strong>
+                            <small class="d-block text-muted">El tenant podrá ingresar URL/Token desde su panel.</small>
+                        </label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="allowCustomEmail" name="allow_custom_email" {{ $tenant->allow_custom_email ? 'checked' : '' }}>
+                        <label class="form-check-label" for="allowCustomEmail">
+                            <strong>Email propio (SMTP)</strong>
+                            <small class="d-block text-muted">El tenant podrá definir host, puerto y credenciales.</small>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary align-self-start">
+                        <i class="bi bi-save me-1"></i>Guardar permisos
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white">
                 <h5 class="mb-0"><i class="bi bi-inbox-arrow-down me-2"></i>Últimos Webhooks</h5>
             </div>
             <div class="card-body">

@@ -29,6 +29,8 @@ class Tenant extends Model
         'ultima_respaldo',
         'ultima_migracion',
         'atributoColores',
+        'allow_custom_whatsapp',
+        'allow_custom_email',
     ];
 
     protected $casts = [
@@ -39,7 +41,19 @@ class Tenant extends Model
         'ultima_respaldo' => 'datetime',
         'ultima_migracion' => 'datetime',
         'api_token_last_used_at' => 'datetime',
+        'allow_custom_whatsapp' => 'boolean',
+        'allow_custom_email' => 'boolean',
     ];
+
+    public function usaWhatsAppPersonalizado(): bool
+    {
+        return (bool) $this->allow_custom_whatsapp;
+    }
+
+    public function usaEmailPersonalizado(): bool
+    {
+        return (bool) $this->allow_custom_email;
+    }
 
     public function usernameSuffix(): string
     {

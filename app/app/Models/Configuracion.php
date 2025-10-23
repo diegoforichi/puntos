@@ -48,6 +48,8 @@ class Configuracion extends Model
     const KEY_DIAS_VENCIMIENTO = 'dias_vencimiento';
     const KEY_CONTACTO = 'contacto';
     const KEY_EVENTOS_WHATSAPP = 'eventos_whatsapp';
+    const KEY_WHATSAPP_CUSTOM = 'whatsapp_custom';
+    const KEY_EMAIL_CUSTOM = 'email_custom';
     const KEY_ACUMULACION_EXCLUIR_EFACTURAS = 'acumulacion_excluir_efacturas';
     const KEY_MONEDA_BASE = 'moneda_base';
     const KEY_TASA_USD = 'tasa_usd';
@@ -97,6 +99,40 @@ class Configuracion extends Model
                 'value' => $value,
             ]
         );
+    }
+
+    public static function getCustomWhatsAppConfig(): array
+    {
+        $config = self::get(self::KEY_WHATSAPP_CUSTOM, []);
+
+        if (!is_array($config)) {
+            return [];
+        }
+
+        return [
+            'activo' => (bool) ($config['activo'] ?? false),
+            'url' => $config['url'] ?? null,
+            'token' => $config['token'] ?? null,
+        ];
+    }
+
+    public static function getCustomEmailConfig(): array
+    {
+        $config = self::get(self::KEY_EMAIL_CUSTOM, []);
+
+        if (!is_array($config)) {
+            return [];
+        }
+
+        return [
+            'host' => $config['host'] ?? null,
+            'port' => isset($config['port']) ? (int) $config['port'] : null,
+            'username' => $config['username'] ?? null,
+            'password' => $config['password'] ?? null,
+            'encryption' => $config['encryption'] ?? null,
+            'from_address' => $config['from_address'] ?? null,
+            'from_name' => $config['from_name'] ?? null,
+        ];
     }
 
     /**

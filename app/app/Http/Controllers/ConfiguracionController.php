@@ -37,6 +37,8 @@ class ConfiguracionController extends Controller
             'promociones_activas' => false,
             'bienvenida_nuevos' => false
         ]);
+        $customWhatsApp = Configuracion::getCustomWhatsAppConfig();
+        $customEmail = Configuracion::getCustomEmailConfig();
         $configAcumulacion = Configuracion::getAcumulacion();
         $configMoneda = [
             'moneda_base' => Configuracion::getMonedaBase(),
@@ -52,6 +54,8 @@ class ConfiguracionController extends Controller
             'vencimientoConfig' => $vencimientoConfig,
             'contactoConfig' => $contactoConfig,
             'eventosWhatsApp' => $eventosWhatsApp,
+            'customWhatsApp' => $customWhatsApp,
+            'customEmail' => $customEmail,
             'configAcumulacion' => $configAcumulacion,
             'configMoneda' => $configMoneda,
             'temaConfig' => $temaConfig,

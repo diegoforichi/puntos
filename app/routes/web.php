@@ -57,6 +57,7 @@ Route::prefix('superadmin')->group(function () {
         Route::put('/tenants/{tenant}', [SuperAdminController::class, 'updateTenant'])->name('superadmin.tenants.update');
         Route::post('/tenants/{tenant}/regenerate-key', [SuperAdminController::class, 'regenerateTenantKey'])->name('superadmin.tenants.regenerate');
         Route::post('/tenants/{tenant}/regenerate-api-token', [SuperAdminController::class, 'regenerateTenantApiToken'])->name('superadmin.tenants.regenerate-api-token');
+        Route::post('/tenants/{tenant}/notifications', [SuperAdminController::class, 'updateTenantNotifications'])->name('superadmin.tenants.notifications');
         Route::post('/tenants/{tenant}/toggle', [SuperAdminController::class, 'toggleTenant'])->name('superadmin.tenants.toggle');
         Route::post('/tenants/{tenant}/seed-users', [SuperAdminController::class, 'seedTenantUsers'])->name('superadmin.tenants.seed-users');
         Route::post('/tenants/{tenant}/ensure-db', [SuperAdminController::class, 'ensureTenantDbManually'])->name('superadmin.tenants.ensure-db');

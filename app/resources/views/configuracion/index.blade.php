@@ -28,6 +28,14 @@
                 WhatsApp
             </button>
         </li>
+        @if($tenant->allow_custom_whatsapp || $tenant->allow_custom_email)
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {{ $activeTab === 'integraciones' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#integraciones" type="button">
+                <i class="bi bi-plug me-2"></i>
+                Integraciones
+            </button>
+        </li>
+        @endif
         <li class="nav-item" role="presentation">
             <button class="nav-link {{ $activeTab === 'mantenimiento' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#mantenimiento" type="button">
                 <i class="bi bi-tools me-2"></i>
@@ -399,6 +407,98 @@
                 </div>
             </div>
         </div>
+
+        @if($tenant->allow_custom_whatsapp || $tenant->allow_custom_email)
+        <div class="tab-pane fade {{ $activeTab === 'integraciones' ? 'show active' : '' }}" id="integraciones" role="tabpanel">
+            <div class="row">
+                @if($tenant->allow_custom_whatsapp)
+                <div class="col-xl-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-whatsapp me-2 text-success"></i>WhatsApp personalizado</h5>
+                            <span class="badge bg-success-subtle text-success">Tenant</span>
+                        </div>
+                        <div class="card-body">
+                            <form action="/{{ $tenant->rut }}/configuracion/whatsapp/custom" method="POST" class="vstack gap-3">
+                                @csrf
+                                <div>
+                                    <label class="form-label">URL del servicio</label>
+                                    <input type="url" name="url" class="form-control" value="{{ old('url', $customWhatsApp['url'] ?? '') }}" placeholder="https://..." required>
+                                </div>
+                                <div>
+                                    <label class="form-label">Token</label>
+                                    <input type="text" name="token" class="form-control" value="{{ old('token', $customWhatsApp['token'] ?? '') }}" placeholder="Token de autenticación" required>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="whatsappActivo" name="activo" {{ ($customWhatsApp['activo'] ?? false) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="whatsappActivo">Habilitar servicio personalizado</label>
+                                </div>
+                                <button type="submit" class="btn btn-outline-success align-self-start">
+                                    <i class="bi bi-save me-1"></i>Guardar WhatsApp propio
+                                </button>
+                                <small class="text-muted">Si deshabilitas esta opción, se utilizará la configuración global del SuperAdmin.</small>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if($tenant->allow_custom_email)
+                <div class="col-xl-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-envelope-open me-2 text-primary"></i>Email (SMTP) personalizado</h5>
+                            <span class="badge bg-primary-subtle text-primary">Tenant</span>
+                        </div>
+                        <div class="card-body">
+                            <form action="/{{ $tenant->rut }}/configuracion/email/custom" method="POST" class="row g-3">
+                                @csrf
+                                <div class="col-md-6">
+                                    <label class="form-label">Host SMTP</label>
+                                    <input type="text" class="form-control" name="host" value="{{ old('host', $customEmail['host'] ?? '') }}" placeholder="smtp.tudominio.com" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Puerto</label>
+                                    <input type="number" class="form-control" name="port" value="{{ old('port', $customEmail['port'] ?? 587) }}" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Encriptación</label>
+                                    <select class="form-select" name="encryption">
+                                        <option value="" {{ empty($customEmail['encryption']) ? 'selected' : '' }}>Ninguna</option>
+                                        <option value="tls" {{ ($customEmail['encryption'] ?? '') === 'tls' ? 'selected' : '' }}>TLS</option>
+                                        <option value="ssl" {{ ($customEmail['encryption'] ?? '') === 'ssl' ? 'selected' : '' }}>SSL</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Usuario</label>
+                                    <input type="text" class="form-control" name="username" value="{{ old('username', $customEmail['username'] ?? '') }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Contraseña</label>
+                                    <input type="password" class="form-control" name="password" value="{{ old('password', $customEmail['password'] ?? '') }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Remitente (email)</label>
+                                    <input type="email" class="form-control" name="from_address" value="{{ old('from_address', $customEmail['from_address'] ?? '') }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Remitente (nombre)</label>
+                                    <input type="text" class="form-control" name="from_name" value="{{ old('from_name', $customEmail['from_name'] ?? '') }}" required>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-outline-primary">
+                                        <i class="bi bi-save me-1"></i>Guardar SMTP propio
+                                    </button>
+                                    <small class="text-muted d-block mt-2">Los reportes y futuras campañas usarán estas credenciales.</small>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
 
         <!-- Tab Mantenimiento -->
         <div class="tab-pane fade {{ $activeTab === 'mantenimiento' ? 'show active' : '' }}" id="mantenimiento" role="tabpanel">
