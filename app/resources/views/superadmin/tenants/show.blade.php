@@ -5,13 +5,6 @@
 @section('page-subtitle', $tenant->nombre_comercial)
 
 @section('content')
-@if(session('integration_error'))
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle me-2"></i>{{ session('integration_error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-    </div>
-@endif
-
 <div class="row g-4">
     <div class="col-lg-6">
         <div class="card shadow-sm border-0 h-100">

@@ -2,16 +2,17 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Tenant;
 use App\Mail\ResumenDiario;
+use App\Models\Tenant;
+use App\Services\NotificationConfigResolver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use App\Services\NotificationConfigResolver;
 
 class SendDailyReports extends Command
 {
     protected $signature = 'tenant:send-daily-reports';
+
     protected $description = 'Envía resumen diario de actividad por email a todos los tenants activos';
 
     public function __construct(private NotificationConfigResolver $configResolver)
@@ -34,6 +35,7 @@ class SendDailyReports extends Command
 
                 if (empty($emailContacto)) {
                     $this->warn("  ⚠️  Tenant {$tenant->rut}: sin email de contacto, omitido.");
+
                     continue;
                 }
 
@@ -94,6 +96,7 @@ class SendDailyReports extends Command
 
         $puntosCanjeadosHoy = DB::connection('tenant_temp')->table('puntos_canjeados')
             ->whereBetween('created_at', [$ayer, $hoy])
+            ->where('origen', '!=', 'ajuste')
             ->sum('puntos_canjeados');
 
         $nuevosClientesHoy = DB::connection('tenant_temp')->table('clientes')
@@ -127,4 +130,3 @@ class SendDailyReports extends Command
         ];
     }
 }
-

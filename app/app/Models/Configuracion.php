@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Modelo Configuracion
- * 
+ *
  * Representa la configuración del tenant
  * Almacena parámetros como puntos_por_pesos, días_vencimiento, etc.
- * 
+ *
  * Tabla: configuracion (SQLite del tenant)
  */
 class Configuracion extends Model
@@ -18,6 +18,7 @@ class Configuracion extends Model
      * Conexión: usar siempre la base SQLite del tenant
      */
     protected $connection = 'tenant';
+
     /**
      * Nombre de la tabla
      */
@@ -45,29 +46,39 @@ class Configuracion extends Model
      * Claves de configuración disponibles
      */
     const KEY_PUNTOS_POR_PESOS = 'puntos_por_pesos';
+
     const KEY_DIAS_VENCIMIENTO = 'dias_vencimiento';
+
     const KEY_CONTACTO = 'contacto';
+
     const KEY_EVENTOS_WHATSAPP = 'eventos_whatsapp';
+
     const KEY_WHATSAPP_CUSTOM = 'whatsapp_custom';
+
     const KEY_EMAIL_CUSTOM = 'email_custom';
+
     const KEY_ACUMULACION_EXCLUIR_EFACTURAS = 'acumulacion_excluir_efacturas';
+
     const KEY_MONEDA_BASE = 'moneda_base';
+
     const KEY_TASA_USD = 'tasa_usd';
+
     const KEY_MONEDA_DESCONOCIDA = 'moneda_desconocida';
+
     const KEY_TEMA_COLORES = 'tema_colores';
 
     /**
      * Obtener valor de configuración por clave
-     * 
-     * @param string $key
-     * @param mixed $default
+     *
+     * @param  string  $key
+     * @param  mixed  $default
      * @return mixed
      */
     public static function get($key, $default = null)
     {
         $config = self::where('key', $key)->first();
-        
-        if (!$config) {
+
+        if (! $config) {
             return $default;
         }
 
@@ -81,15 +92,15 @@ class Configuracion extends Model
 
     /**
      * Establecer valor de configuración
-     * 
-     * @param string $key
-     * @param mixed $value
-     * @param string|null $descripcion
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @param  string|null  $descripcion
      * @return void
      */
     public static function set($key, $value, $descripcion = null)
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             $value = ['valor' => $value];
         }
 
@@ -101,18 +112,65 @@ class Configuracion extends Model
         );
     }
 
+    public static function setCustomWhatsAppConfig(array $data): void
+    {
+        $config = [
+            'url' => $data['url'] ?? '',
+            'token' => $data['token'] ?? '',
+            'usar_canal' => (bool) ($data['usar_canal'] ?? false),
+            'activo' => (bool) ($data['activo'] ?? false),
+        ];
+
+        if (! empty($config['token'])) {
+            $config['token'] = encrypt($config['token']);
+        }
+
+        self::set(self::KEY_WHATSAPP_CUSTOM, $config);
+    }
+
+    public static function setCustomEmailConfig(array $data): void
+    {
+        $config = [
+            'host' => $data['host'] ?? '',
+            'port' => $data['port'] ?? 587,
+            'encryption' => $data['encryption'] ?? null,
+            'username' => $data['username'] ?? '',
+            'password' => $data['password'] ?? '',
+            'from_address' => $data['from_address'] ?? '',
+            'from_name' => $data['from_name'] ?? '',
+            'usar_canal' => (bool) ($data['usar_canal'] ?? false),
+            'activo' => (bool) ($data['activo'] ?? false),
+        ];
+
+        if (! empty($config['password'])) {
+            $config['password'] = encrypt($config['password']);
+        }
+
+        self::set(self::KEY_EMAIL_CUSTOM, $config);
+    }
+
     public static function getCustomWhatsAppConfig(): array
     {
         $config = self::get(self::KEY_WHATSAPP_CUSTOM, []);
 
-        if (!is_array($config)) {
+        if (! is_array($config)) {
             return [];
         }
 
+        $token = $config['token'] ?? null;
+        if (! empty($token)) {
+            try {
+                $token = decrypt($token);
+            } catch (\Throwable $e) {
+                $token = null;
+            }
+        }
+
         return [
+            'usar_canal' => (bool) ($config['usar_canal'] ?? true),
             'activo' => (bool) ($config['activo'] ?? false),
             'url' => $config['url'] ?? null,
-            'token' => $config['token'] ?? null,
+            'token' => $token,
         ];
     }
 
@@ -120,24 +178,35 @@ class Configuracion extends Model
     {
         $config = self::get(self::KEY_EMAIL_CUSTOM, []);
 
-        if (!is_array($config)) {
+        if (! is_array($config)) {
             return [];
+        }
+
+        $password = $config['password'] ?? null;
+        if (! empty($password)) {
+            try {
+                $password = decrypt($password);
+            } catch (\Throwable $e) {
+                $password = null;
+            }
         }
 
         return [
             'host' => $config['host'] ?? null,
             'port' => isset($config['port']) ? (int) $config['port'] : null,
             'username' => $config['username'] ?? null,
-            'password' => $config['password'] ?? null,
+            'password' => $password,
             'encryption' => $config['encryption'] ?? null,
             'from_address' => $config['from_address'] ?? null,
             'from_name' => $config['from_name'] ?? null,
+            'usar_canal' => (bool) ($config['usar_canal'] ?? true),
+            'activo' => (bool) ($config['activo'] ?? false),
         ];
     }
 
     /**
      * Obtener puntos por pesos configurados
-     * 
+     *
      * @return float
      */
     public static function getPuntosPorPesos()
@@ -147,7 +216,7 @@ class Configuracion extends Model
 
     /**
      * Obtener días de vencimiento configurados
-     * 
+     *
      * @return int
      */
     public static function getDiasVencimiento()
@@ -157,13 +226,13 @@ class Configuracion extends Model
 
     /**
      * Obtener datos de contacto del comercio
-     * 
+     *
      * @return array
      */
     public static function getContacto()
     {
         $contacto = self::get(self::KEY_CONTACTO, []);
-        
+
         // Asegurar que siempre retorne un array con las claves esperadas
         return [
             'nombre_comercial' => $contacto['nombre_comercial'] ?? '',
@@ -175,7 +244,7 @@ class Configuracion extends Model
 
     /**
      * Obtener eventos de WhatsApp habilitados
-     * 
+     *
      * @return array
      */
     public static function getEventosWhatsApp()
@@ -190,25 +259,26 @@ class Configuracion extends Model
 
     /**
      * Verificar si un evento de WhatsApp está habilitado
-     * 
-     * @param string $evento
+     *
+     * @param  string  $evento
      * @return bool
      */
     public static function eventoWhatsAppHabilitado($evento)
     {
         $eventos = self::getEventosWhatsApp();
+
         return $eventos[$evento] ?? false;
     }
 
     /**
      * Obtener descripción por defecto según la clave
-     * 
-     * @param string $key
+     *
+     * @param  string  $key
      * @return string
      */
     private static function getDescripcionPorDefecto($key)
     {
-        return match($key) {
+        return match ($key) {
             self::KEY_PUNTOS_POR_PESOS => 'Cantidad de pesos necesarios para generar 1 punto',
             self::KEY_DIAS_VENCIMIENTO => 'Días de validez de los puntos desde la fecha de emisión',
             self::KEY_CONTACTO => 'Datos de contacto del comercio',
@@ -220,7 +290,7 @@ class Configuracion extends Model
 
     /**
      * Obtener todas las configuraciones como array asociativo
-     * 
+     *
      * @return array
      */
     public static function todas()
@@ -265,6 +335,7 @@ class Configuracion extends Model
     public static function getMonedaDesconocida(): string
     {
         $valor = self::get(self::KEY_MONEDA_DESCONOCIDA, 'omitir');
+
         return in_array($valor, ['omitir', 'sin_convertir'], true) ? $valor : 'omitir';
     }
 
@@ -279,6 +350,7 @@ class Configuracion extends Model
     public static function getTemaColores(): array
     {
         $colores = self::get(self::KEY_TEMA_COLORES, []);
+
         return is_array($colores) ? $colores : [];
     }
 

@@ -36,6 +36,7 @@ return [
 
         'database' => [
             'driver' => 'database',
+            'connection' => env('QUEUE_DB_CONNECTION', 'mysql'),
             'table' => 'jobs',
             'queue' => 'default',
             'retry_after' => 90,
@@ -86,8 +87,13 @@ return [
 
     'failed' => [
         'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
-        'database' => env('DB_CONNECTION', 'mysql'),
+        'database' => env('QUEUE_FAILED_DATABASE_CONNECTION', env('QUEUE_DB_CONNECTION', 'mysql')),
         'table' => 'failed_jobs',
+    ],
+
+    'batching' => [
+        'database' => env('QUEUE_BATCH_DATABASE_CONNECTION', env('QUEUE_DB_CONNECTION', 'mysql')),
+        'table' => 'job_batches',
     ],
 
 ];

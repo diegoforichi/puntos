@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('campanas:procesar-programadas')->everyMinute()->onOneServer();
+        $schedule->command('tenant:tareas-diarias')->daily()->at('03:00');
     }
 
     /**

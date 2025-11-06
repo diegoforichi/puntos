@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Modelo Promocion
- * 
+ *
  * Representa una campaña de promoción de puntos
  * Tipos: multiplicador, puntos_extra, descuento_canje
- * 
+ *
  * Tabla: promociones (SQLite del tenant)
  */
 class Promocion extends Model
@@ -56,14 +56,14 @@ class Promocion extends Model
     /**
      * Tipos de promoción disponibles
      */
-    const TIPO_DESCUENTO = 'descuento';
     const TIPO_BONIFICACION = 'bonificacion';
+
     const TIPO_MULTIPLICADOR = 'multiplicador';
 
     /**
      * Scope: Promociones activas
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActivas($query)
@@ -75,8 +75,8 @@ class Promocion extends Model
 
     /**
      * Scope: Promociones vencidas
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeVencidas($query)
@@ -86,8 +86,8 @@ class Promocion extends Model
 
     /**
      * Scope: Promociones programadas (futuras)
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeProgramadas($query)
@@ -97,9 +97,9 @@ class Promocion extends Model
 
     /**
      * Scope: Filtrar por tipo
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $tipo
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $tipo
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopePorTipo($query, $tipo)
@@ -109,36 +109,35 @@ class Promocion extends Model
 
     /**
      * Verificar si la promoción está vigente
-     * 
+     *
      * @return bool
      */
     public function estaVigente()
     {
-        return $this->activa 
-            && $this->fecha_inicio <= now() 
+        return $this->activa
+            && $this->fecha_inicio <= now()
             && $this->fecha_fin >= now();
     }
 
     /**
      * Aplicar promoción a un monto de factura (método de instancia)
-     * 
-     * @param float $monto
-     * @param float $puntosBase
+     *
+     * @param  float  $monto
+     * @param  float  $puntosBase
      * @return float
      */
     public function aplicarPromocion($monto, $puntosBase)
     {
-        if (!$this->estaVigente()) {
+        if (! $this->estaVigente()) {
             return $puntosBase;
         }
 
         // Verificar condiciones
-        if (!$this->cumpleCondiciones($monto)) {
+        if (! $this->cumpleCondiciones($monto)) {
             return $puntosBase;
         }
 
-        return match($this->tipo) {
-            self::TIPO_DESCUENTO => $puntosBase, // Descuento no afecta puntos generados
+        return match ($this->tipo) {
             self::TIPO_BONIFICACION => $puntosBase * (1 + ($this->valor / 100)), // % extra
             self::TIPO_MULTIPLICADOR => $puntosBase * $this->valor, // Factor multiplicador
             default => $puntosBase,
@@ -147,8 +146,8 @@ class Promocion extends Model
 
     /**
      * Verificar si se cumplen las condiciones de la promoción
-     * 
-     * @param float $monto
+     *
+     * @param  float  $monto
      * @return bool
      */
     public function cumpleCondiciones($monto)
@@ -176,7 +175,7 @@ class Promocion extends Model
         // Verificar día de la semana
         if (isset($condicion['dias_semana'])) {
             $diaActual = now()->dayOfWeek; // 0=Domingo, 6=Sábado
-            if (!in_array($diaActual, $condicion['dias_semana'])) {
+            if (! in_array($diaActual, $condicion['dias_semana'])) {
                 return false;
             }
         }
@@ -186,12 +185,12 @@ class Promocion extends Model
 
     /**
      * Obtener badge de estado
-     * 
+     *
      * @return array [class, text]
      */
     public function getBadgeEstadoAttribute()
     {
-        if (!$this->activa) {
+        if (! $this->activa) {
             return ['class' => 'bg-secondary', 'text' => 'Inactiva'];
         }
 
@@ -208,13 +207,12 @@ class Promocion extends Model
 
     /**
      * Obtener nombre del tipo de promoción
-     * 
+     *
      * @return string
      */
     public function getTipoNombreAttribute()
     {
-        return match($this->tipo) {
-            self::TIPO_DESCUENTO => 'Descuento',
+        return match ($this->tipo) {
             self::TIPO_BONIFICACION => 'Bonificación',
             self::TIPO_MULTIPLICADOR => 'Multiplicador',
             default => 'Desconocido',
@@ -223,13 +221,12 @@ class Promocion extends Model
 
     /**
      * Obtener descripción del valor según el tipo
-     * 
+     *
      * @return string
      */
     public function getValorDescripcionAttribute()
     {
-        return match($this->tipo) {
-            self::TIPO_DESCUENTO => "\${$this->valor} descuento",
+        return match ($this->tipo) {
             self::TIPO_BONIFICACION => "+{$this->valor}% puntos",
             self::TIPO_MULTIPLICADOR => "x{$this->valor}",
             default => $this->valor,
@@ -238,28 +235,27 @@ class Promocion extends Model
 
     /**
      * Obtener array con todos los tipos disponibles
-     * 
+     *
      * @return array
      */
     public static function tiposDisponibles()
     {
         return [
-            self::TIPO_DESCUENTO => 'Descuento en monto ($ fijo)',
             self::TIPO_BONIFICACION => 'Bonificación de puntos (% extra)',
             self::TIPO_MULTIPLICADOR => 'Multiplicador de puntos (2x, 3x)',
         ];
     }
-    
+
     /**
      * Aplicar promoción automáticamente a una factura (método estático)
-     * 
+     *
      * Busca la mejor promoción activa y aplicable,
      * priorizando por mayor prioridad y mayor beneficio
-     * 
-     * @param float $monto Monto total de la factura
-     * @param float $puntosBase Puntos calculados sin promoción
-     * @param \DateTime $fecha Fecha de la factura
-     * @param int|null $clienteId ID del cliente (para futuras condiciones)
+     *
+     * @param  float  $monto  Monto total de la factura
+     * @param  float  $puntosBase  Puntos calculados sin promoción
+     * @param  \DateTime  $fecha  Fecha de la factura
+     * @param  int|null  $clienteId  ID del cliente (para futuras condiciones)
      * @return array ['promocion_id' => int|null, 'puntos_finales' => float]
      */
     public static function aplicar(float $monto, float $puntosBase, $fecha = null, $clienteId = null): array
@@ -268,30 +264,30 @@ class Promocion extends Model
         $promociones = self::activas()
             ->orderBy('prioridad', 'desc')
             ->get();
-        
+
         if ($promociones->isEmpty()) {
             return [
                 'promocion_id' => null,
-                'puntos_finales' => $puntosBase
+                'puntos_finales' => $puntosBase,
             ];
         }
-        
+
         // Intentar aplicar cada promoción (la primera que aplique gana)
         foreach ($promociones as $promocion) {
             if ($promocion->cumpleCondiciones($monto)) {
                 $puntosConPromocion = $promocion->aplicarPromocion($monto, $puntosBase);
-                
+
                 return [
                     'promocion_id' => $promocion->id,
-                    'puntos_finales' => $puntosConPromocion
+                    'puntos_finales' => $puntosConPromocion,
                 ];
             }
         }
-        
+
         // Si ninguna aplica, retornar puntos base
         return [
             'promocion_id' => null,
-            'puntos_finales' => $puntosBase
+            'puntos_finales' => $puntosBase,
         ];
     }
 }

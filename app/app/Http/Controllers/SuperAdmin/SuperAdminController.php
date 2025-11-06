@@ -3,22 +3,22 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SuperAdmin\ArchiveTenantRequest;
 use App\Models\AdminLog;
-use App\Models\Tenant;
 use App\Models\SystemConfig;
+use App\Models\Tenant;
+use App\Services\TenantBackupService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Validation\Rule;
-use App\Services\TenantBackupService;
-use App\Http\Requests\SuperAdmin\ArchiveTenantRequest;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class SuperAdminController extends Controller
 {
@@ -125,7 +125,7 @@ class SuperAdminController extends Controller
             'operario' => 'Operario123!',
         ];
 
-        $apiBaseUrl = rtrim(config('app.url'), '/') . '/' . $tenant->rut . '/api';
+        $apiBaseUrl = rtrim(config('app.url'), '/').'/'.$tenant->rut.'/api';
 
         return view('superadmin.tenants.show', [
             'tenant' => $tenant,
@@ -156,7 +156,7 @@ class SuperAdminController extends Controller
 
     public function regenerateTenantApiToken(Request $request, Tenant $tenant)
     {
-        $token = 'pk_' . Str::random(60);
+        $token = 'pk_'.Str::random(60);
         $tenant->api_token = $token;
         $tenant->api_token_last_used_at = null;
         $tenant->save();
@@ -187,14 +187,14 @@ class SuperAdminController extends Controller
 
         $request->attributes->set('admin_log_descripcion', "Generó backup manual para tenant {$tenant->rut}");
 
-        return back()->with('success', 'Backup generado correctamente: ' . basename($path));
+        return back()->with('success', 'Backup generado correctamente: '.basename($path));
     }
 
     public function downloadTenantBackup(Request $request, Tenant $tenant)
     {
         $backup = TenantBackupService::lastBackupPath($tenant);
 
-        if (!$backup || !File::exists($backup)) {
+        if (! $backup || ! File::exists($backup)) {
             return back()->with('error', 'No hay backups disponibles.');
         }
 
@@ -225,7 +225,7 @@ class SuperAdminController extends Controller
         $request->attributes->set('admin_log_descripcion', "Archivó tenant {$tenant->rut}");
 
         return redirect()->route('superadmin.tenants.index')
-            ->with('success', 'Tenant archivado. Backup: ' . basename($archived['backup']));
+            ->with('success', 'Tenant archivado. Backup: '.basename($archived['backup']));
     }
 
     public function storeTenant(Request $request)
@@ -259,8 +259,8 @@ class SuperAdminController extends Controller
                 $credenciales = $this->seedDefaultUsers($existente, false);
 
                 $mensaje = collect($credenciales)
-                    ->map(fn($datos) => "Usuario: {$datos['username']} | Email: {$datos['email']} | Contraseña: {$datos['password']} | Rol: {$datos['rol']}")
-                    ->implode("<br>");
+                    ->map(fn ($datos) => "Usuario: {$datos['username']} | Email: {$datos['email']} | Contraseña: {$datos['password']} | Rol: {$datos['rol']}")
+                    ->implode('<br>');
 
                 return back()->with('success', "Tenant restaurado correctamente (antes estaba archivado).<br><pre class='mb-0'>{$mensaje}</pre>");
             }
@@ -283,8 +283,8 @@ class SuperAdminController extends Controller
         $credenciales = $this->seedDefaultUsers($tenant, false);
 
         $mensaje = collect($credenciales)
-            ->map(fn($datos) => "Usuario: {$datos['username']} | Email: {$datos['email']} | Contraseña: {$datos['password']} | Rol: {$datos['rol']}")
-            ->implode("<br>");
+            ->map(fn ($datos) => "Usuario: {$datos['username']} | Email: {$datos['email']} | Contraseña: {$datos['password']} | Rol: {$datos['rol']}")
+            ->implode('<br>');
 
         return back()->with('success', "Tenant creado correctamente.<br><pre class='mb-0'>{$mensaje}</pre>");
     }
@@ -335,8 +335,8 @@ class SuperAdminController extends Controller
         $credenciales = $this->seedDefaultUsers($tenant, true);
 
         $mensaje = collect($credenciales)
-            ->map(fn($datos) => "Usuario: {$datos['username']} | Email: {$datos['email']} | Contraseña: {$datos['password']} | Rol: {$datos['rol']}")
-            ->implode("<br>");
+            ->map(fn ($datos) => "Usuario: {$datos['username']} | Email: {$datos['email']} | Contraseña: {$datos['password']} | Rol: {$datos['rol']}")
+            ->implode('<br>');
 
         return back()->with('success', "Usuarios generados.<br><pre class='mb-0'>{$mensaje}</pre>");
     }
@@ -362,7 +362,7 @@ class SuperAdminController extends Controller
     public function testEmail(Request $request)
     {
         $data = $request->validate([
-            'email' => 'required|email'
+            'email' => 'required|email',
         ]);
 
         $config = SystemConfig::getEmailConfig();
@@ -380,11 +380,11 @@ class SuperAdminController extends Controller
 
             Mail::mailer('smtp')
                 ->to($data['email'])
-                ->send(new \App\Mail\TestEmailSmtp());
+                ->send(new \App\Mail\TestEmailSmtp);
 
             return back()->with('success', 'Email de prueba enviado correctamente. Revisa tu bandeja.');
         } catch (\Throwable $e) {
-            return back()->with('error', 'No se pudo enviar el email de prueba: ' . $e->getMessage());
+            return back()->with('error', 'No se pudo enviar el email de prueba: '.$e->getMessage());
         }
     }
 
@@ -396,7 +396,7 @@ class SuperAdminController extends Controller
 
         $config = SystemConfig::getWhatsAppConfig();
 
-        if (!($config['activo'] ?? false)) {
+        if (! ($config['activo'] ?? false)) {
             return back()->with('error', 'El servicio de WhatsApp está deshabilitado. Actívalo y guarda la configuración antes de probar.');
         }
 
@@ -407,29 +407,29 @@ class SuperAdminController extends Controller
         try {
             // Limpiar y normalizar teléfono
             $telefonoLimpio = preg_replace('/[^0-9]/', '', $data['telefono']);
-            
+
             // Si empieza con 09 y tiene 9 dígitos (formato local UY), convertir a internacional
             if (preg_match('/^09\d{7}$/', $telefonoLimpio)) {
-                $telefonoLimpio = '598' . substr($telefonoLimpio, 1);
+                $telefonoLimpio = '598'.substr($telefonoLimpio, 1);
             }
             $mensaje = '✅ Prueba exitosa de WhatsApp desde Sistema de Puntos. Configuración confirmada.';
-            
+
             // Construir URL con parámetros (igual que Google Apps Script)
-            $urlConParams = $config['url'] 
-                . '?token=' . urlencode($config['token'])
-                . '&number=' . urlencode($telefonoLimpio)
-                . '&message=' . urlencode($mensaje)
-                . '&urlDocument=';
+            $urlConParams = $config['url']
+                .'?token='.urlencode($config['token'])
+                .'&number='.urlencode($telefonoLimpio)
+                .'&message='.urlencode($mensaje)
+                .'&urlDocument=';
 
             $response = Http::timeout(10)->get($urlConParams);
 
-            if (!$response->successful()) {
-                throw new \RuntimeException('Respuesta HTTP ' . $response->status() . ': ' . $response->body());
+            if (! $response->successful()) {
+                throw new \RuntimeException('Respuesta HTTP '.$response->status().': '.$response->body());
             }
 
-            return back()->with('success', 'Mensaje de prueba enviado correctamente al número ' . $data['telefono']);
+            return back()->with('success', 'Mensaje de prueba enviado correctamente al número '.$data['telefono']);
         } catch (\Throwable $e) {
-            return back()->with('error', 'No se pudo enviar el WhatsApp de prueba: ' . $e->getMessage());
+            return back()->with('error', 'No se pudo enviar el WhatsApp de prueba: '.$e->getMessage());
         }
     }
 
@@ -437,13 +437,13 @@ class SuperAdminController extends Controller
     {
         $sqlitePath = $tenant->getSqlitePath();
 
-        if (!File::exists(dirname($sqlitePath))) {
+        if (! File::exists(dirname($sqlitePath))) {
             File::makeDirectory(dirname($sqlitePath), 0755, true);
         }
 
-        if (!File::exists($sqlitePath)) {
+        if (! File::exists($sqlitePath)) {
             File::put($sqlitePath, '');
-        } elseif (!$force) {
+        } elseif (! $force) {
             config([
                 'database.connections.tenant_temp' => [
                     'driver' => 'sqlite',
@@ -479,11 +479,22 @@ class SuperAdminController extends Controller
 
         DB::purge('tenant_temp');
 
-        Artisan::call('migrate', [
-            '--database' => 'tenant_temp',
-            '--path' => 'database/migrations/tenant',
-            '--force' => true,
-        ]);
+        // Intentar migración estándar primero
+        try {
+            Artisan::call('migrate', [
+                '--database' => 'tenant_temp',
+                '--path' => 'database/migrations/tenant',
+                '--force' => true,
+            ]);
+        } catch (\Exception $e) {
+            // Si falla (SQLite antiguo), usar comando raw
+            DB::purge('tenant_temp');
+            DB::setDefaultConnection('mysql');
+
+            Artisan::call('tenant:migrate-raw', [
+                'rut' => $tenant->rut,
+            ]);
+        }
 
         DB::purge('tenant_temp');
         DB::setDefaultConnection('mysql');
@@ -516,37 +527,38 @@ class SuperAdminController extends Controller
 
         $users = [
             [
-                'nombre' => 'Admin ' . $tenant->nombre_comercial,
-                'username' => 'admin' . $suffix,
+                'nombre' => 'Admin '.$tenant->nombre_comercial,
+                'username' => 'admin'.$suffix,
                 'password' => $passwords['admin'],
                 'rol' => 'admin',
-                'email' => 'admin@' . $emailDomain,
+                'email' => 'admin@'.$emailDomain,
             ],
             [
-                'nombre' => 'Supervisor ' . $tenant->nombre_comercial,
-                'username' => 'supervisor' . $suffix,
+                'nombre' => 'Supervisor '.$tenant->nombre_comercial,
+                'username' => 'supervisor'.$suffix,
                 'password' => $passwords['supervisor'],
                 'rol' => 'supervisor',
-                'email' => 'supervisor@' . $emailDomain,
+                'email' => 'supervisor@'.$emailDomain,
             ],
             [
-                'nombre' => 'Operario ' . $tenant->nombre_comercial,
-                'username' => 'operario' . $suffix,
+                'nombre' => 'Operario '.$tenant->nombre_comercial,
+                'username' => 'operario'.$suffix,
                 'password' => $passwords['operario'],
                 'rol' => 'operario',
-                'email' => 'operario@' . $emailDomain,
+                'email' => 'operario@'.$emailDomain,
             ],
         ];
 
         $credenciales = [];
         foreach ($users as $user) {
-            if (!$force && DB::table('usuarios')->where('username', $user['username'])->exists()) {
+            if (! $force && DB::table('usuarios')->where('username', $user['username'])->exists()) {
                 $credenciales[] = [
                     'username' => $user['username'],
                     'email' => $user['email'],
                     'password' => $user['password'],
                     'rol' => $user['rol'],
                 ];
+
                 continue;
             }
 

@@ -2,7 +2,7 @@
 
 Sistema integral de gestión de programas de fidelización con integración automática vía webhook.
 
-**Versión:** 1.3  
+**Versión:** 1.4  
 **Framework:** Laravel 10  
 **PHP:** 8.2+  
 **Bases de datos:** MySQL (global) + SQLite (por tenant)
@@ -15,6 +15,7 @@ Sistema integral de gestión de programas de fidelización con integración auto
 - ✅ **Integración e-Factura:** Webhook automático para procesar facturas
 - ✅ **Notificaciones WhatsApp:** Eventos configurables por tenant
 - ✅ **Email automatizado:** Reportes diarios por SMTP
+- ✅ **Límites de envío inteligentes:** Control diario para SMTP propio y velocidad segura en WhatsApp
 - ✅ **Sistema FIFO:** Canje inteligente de puntos
 - ✅ **Promociones dinámicas:** Multiplicadores, bonificaciones y descuentos
 - ✅ **Portal público:** Autoconsulta de puntos sin login
@@ -23,6 +24,7 @@ Sistema integral de gestión de programas de fidelización con integración auto
 - ✅ **Compactación de BD:** Limpieza automática de registros antiguos
 - ✅ **Expiración automática:** Descuento diario de puntos vencidos con historial (`puntos:expirar`)
 - ✅ **Cron maestro:** Comando único para todas las tareas programadas (`tenant:tareas-diarias`)
+- ✅ **Ajustes manuales de puntos:** Correcciones con auditoría y sin saldos negativos
 - ✅ **Cupones PDF:** Generación de cupones con 2 copias en 1 hoja A4 (cliente + comercio)
 - ✅ **Reimpresión:** Acceso a cupones históricos desde detalle del cliente
 
@@ -234,6 +236,7 @@ Se recomienda agendar **un único cron diario** que ejecute todas las tareas aut
 
 ```bash
 0 3 * * * cd /home/usuario/public_html/website_63382ba2 && php artisan tenant:tareas-diarias >> /dev/null 2>&1
+*/15 * * * * cd /home/usuario/public_html/website_63382ba2 && php artisan queue:work --queue=campanas --tries=3 --timeout=90 --max-jobs=30 --stop-when-empty >> /dev/null 2>&1
 ```
 
 El comando `tenant:tareas-diarias` ejecuta, en este orden:
@@ -241,7 +244,9 @@ El comando `tenant:tareas-diarias` ejecuta, en este orden:
 - `puntos:notificar-vencimiento` → Envía WhatsApp a clientes con puntos a vencer.
 - `tenant:send-daily-reports` → Envía email diario a cada tenant con el resumen del día.
 
-> Opcionalmente, se pueden mantener cron jobs separados para cada comando si el hosting lo requiere.
+La cola `campanas` se procesa cada 15 minutos enviando hasta **30 mensajes por ejecución** (`--max-jobs`). Ajustá este valor según la capacidad del proveedor.
+
+> Opcionalmente, se pueden mantener cron jobs separados para cada comando si el hosting lo requiere o si necesitás más capacidad en campañas.
 
 ---
 
@@ -492,39 +497,37 @@ ORDER BY fecha_vencimiento DESC;
 
 ---
 
-## 🆕 Últimas Actualizaciones (v1.3)
+## 🆕 Últimas Actualizaciones (v1.4)
 
 ### Funcionalidades Nuevas
-- ✅ **Comando `puntos:expirar`:** Vencimiento automático de puntos con registro en `puntos_vencidos`
-- ✅ **Comando maestro `tenant:tareas-diarias`:** Consolida expiración, notificaciones y reportes en un solo cron job
-- ✅ **Cupones PDF rediseñados:** 2 copias (cliente + comercio) en 1 hoja A4
-- ✅ **Reimpresión de cupones:** Botón en detalle del cliente para Admin/Supervisor
-- ✅ **Límite en facturas activas:** Muestra solo las 10 más recientes/próximas a vencer en detalle del cliente
-- ✅ **Optimización UI:** Eliminada redundancia de botones en vista de cupón generado
+- ✅ **Ajustes manuales de puntos:** Admin/Supervisor pueden sumar o restar puntos con auditoría y sin saldos negativos.
+- ✅ **Límites de envío inteligentes:** 50 emails diarios cuando se usa SMTP propio y velocidad regulada en WhatsApp.
+- ✅ **Campañas más seguras:** Distribución de envíos por cron (`--max-jobs`) y validación de números de WhatsApp.
 
-### Correcciones
-- ✅ Error 404 en ruta PDF del cupón (faltaba definición en `routes/web.php`)
-- ✅ Método `descargarCuponPdf` no encontrado en hosting (archivo no actualizado)
-- ✅ Layout del PDF mejorado para compatibilidad con Dompdf (table-based, altura fija en mm)
-- ✅ Botones duplicados en vista `cupon.blade.php` reorganizados en secciones primarias/secundarias
+### Correcciones y mejoras
+- ✅ Historial de campañas diferenciado por origen (`panel`, `api`, `ajuste`).
+- ✅ Configuración de email personalizada con mensajes informativos sobre cuotas.
+- ✅ Vistas actualizadas: detalle de cliente, reportes y configuración.
 
-### Archivos Modificados (última sesión - 05/10/2025)
+### Archivos Modificados (última sesión - 06/11/2025)
 ```
-Nuevos:
-- app/app/Console/Commands/ExpirePoints.php
-- app/app/Console/Commands/TenantMaintenanceDaily.php
-
-Modificados:
-- app/app/Http/Controllers/PuntosController.php (método descargarCuponPdf)
-- app/app/Http/Controllers/ClienteController.php (límite 10 facturas activas)
-- app/resources/views/puntos/cupon_pdf.blade.php (rediseño completo)
-- app/resources/views/puntos/cupon.blade.php (reorganización de botones)
-- app/resources/views/clientes/show.blade.php (botón reimprimir, contador facturas)
-- app/routes/web.php (ruta PDF del cupón)
-- app/composer.json (barryvdh/laravel-dompdf)
-- app/config/app.php (Dompdf service provider)
+Modificados destacados:
+- app/app/Http/Controllers/ClienteController.php
+- app/app/Http/Controllers/ReporteController.php
+- app/app/Models/Promocion.php
+- app/app/Jobs/ProcesarEnvioCampana.php
+- app/app/Models/Actividad.php
+- app/app/Models/PuntosCanjeado.php
+- app/app/Services/NotificationConfigResolver.php
+- app/app/Services/WhatsAppService.php
+- app/resources/views/clientes/show.blade.php
+- app/resources/views/reportes/canjes.blade.php
+- app/resources/views/configuracion/index.blade.php
+- app/resources/views/promociones/crear.blade.php
+- app/resources/views/promociones/editar.blade.php
 - README.md (este archivo)
-- MANUAL_USUARIO.md (actualizado)
+- MANUAL_USUARIO.md
+- docs/ARQUITECTURA.md
 ```
 
 ---
@@ -539,7 +542,7 @@ Para desarrollo adicional, revisar `docs/AGENTS.md` con estándares y mejores pr
 
 Para consultas técnicas o reportes de bugs, contactar al administrador del sistema.
 
-**Última actualización:** 05/10/2025  
-**Versión:** 1.3  
+**Última actualización:** 06/11/2025  
+**Versión:** 1.4  
 **Licencia:** Propietario
 

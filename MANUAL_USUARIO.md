@@ -1,5 +1,5 @@
 # 📘 Manual de Usuario – Sistema de Puntos
-**Versión:** 1.3 • **Fecha:** 05/10/2025
+**Versión:** 1.4 • **Fecha:** 06/11/2025
 
 ---
 
@@ -93,6 +93,7 @@
   - Facturas activas (con fecha de vencimiento)
   - Historial de canjes
   - Puntos vencidos
+- **Ajustes manuales (Admin/Supervisor):** Botón "Ajustar puntos" para sumar o restar con motivo obligatorio. El sistema registra el ajuste en el historial, notifica al log de actividades y no permite dejar saldos negativos.
 - **Edición (Admin/Supervisor):** Nombre, email, teléfono, dirección.
 
 ### 3.4 Canje de Puntos (Admin/Supervisor)
@@ -114,8 +115,7 @@
 ### 3.5 Promociones (Admin)
 
 #### Tipos de promoción:
-- **Descuento:** Reduce el monto necesario para acumular puntos.
-- **Bonificación:** Suma puntos extra fijos.
+- **Bonificación:** Suma puntos extra en porcentaje.
 - **Multiplicador:** Multiplica los puntos generados (ej. x2, x3).
 
 #### Campos:
@@ -129,6 +129,7 @@
 #### Aplicación automática:
 - El sistema aplica la promoción de mayor prioridad que cumpla condiciones.
 - Se registra en cada factura qué promoción se aplicó.
+- Botón "Notificar clientes": Envía la promoción activa por WhatsApp de forma manual a todos los clientes con teléfono.
 
 ### 3.6 Reportes y Exportación CSV
 
@@ -224,6 +225,28 @@
 - Operación irreversible.
 - Se recomienda realizar respaldo antes de compactar.
 - Doble confirmación de seguridad.
+
+### 3.9 Campañas (Admin)
+
+- **Tipos de envío:** WhatsApp, Email o Ambos.
+- **Estados:** borrador → pendiente → en proceso → completada.
+- **Fuentes de clientes:** todos los clientes activos, listas segmentadas (próximamente).
+
+**Flujo de trabajo:**
+1. Crear campaña (título, mensaje, canal, programación).
+2. Revisar resumen de destinatarios y confirmar.
+3. Ejecutar “Enviar ahora” o programar para una fecha/hora.
+4. El sistema genera un envío (`campana_envios`) por cliente y los coloca en la cola `campanas`.
+5. El cron `queue:work --max-jobs=30` procesa lotes de mensajes cada 15 minutos.
+
+**Límites y buenas prácticas:**
+- WhatsApp: la cola espera 2 segundos entre mensajes para evitar bloqueos del proveedor.
+- Email propio (SMTP del tenant): límite automático de **50 correos diarios**. Al superarlo, los envíos restantes se reintentan el día siguiente.
+- Email global (servicio premium): sin límites diarios.
+
+**Monitoreo:**
+- Desde el detalle de la campaña se ve el avance (enviados, fallidos, pendientes).
+- El historial guarda el origen del envío (`panel`, `api`, `ajuste`) para auditoría.
 
 ---
 
@@ -322,6 +345,8 @@ El sistema acepta el formato estándar de e-Factura (Uruguay):
   - Clientes con puntos por vencer (próximos 7 días)
 
 **Nota:** Este comando se ejecuta automáticamente como parte de `tenant:tareas-diarias`.
+**Límite por tenant:** Cuando un comercio usa su SMTP propio, el sistema impone un máximo de **50 correos diarios** para evitar bloqueos. Los envíos restantes se reintentan automáticamente al día siguiente.
+**SMTP global:** La configuración premium del SuperAdmin no posee límites diarios.
 
 #### WhatsApp
 - **Servicio:** Endpoint externo con método GET.
@@ -354,6 +379,8 @@ El sistema acepta el formato estándar de e-Factura (Uruguay):
 - **Cuándo:** Al activar una nueva promoción (manual).
 - **Mensaje:** "¡Oferta especial en {Comercio}! {Descripción}. Válida hasta {Fecha}."
 - **Estado:** Método implementado, sin trigger automático.
+
+**Importante:** Los números de teléfono se validan automáticamente (largo mínimo y sin repeticiones obvias). En campañas, se envía 1 mensaje cada 2 segundos para proteger la cuenta de WhatsApp.
 
 ### 6.3 Flujo de Notificaciones
 
@@ -567,7 +594,7 @@ Solo usuarios Admin/Supervisor pueden reimprimir cupones:
 
 Para más información, consulta la documentación técnica en `docs/ARQUITECTURA.md` o contacta al administrador del sistema.
 
-**Versión del sistema:** 1.3  
-**Última actualización:** 05/10/2025  
+**Versión del sistema:** 1.4  
+**Última actualización:** 06/11/2025  
 **Framework:** Laravel 10 + PHP 8.2+
 

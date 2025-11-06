@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Actividad;
 use App\Models\Cliente;
 use App\Models\Factura;
 use App\Models\PuntosCanjeado;
-use App\Models\Actividad;
+use Illuminate\Http\Request;
 
 /**
  * Controlador del Dashboard
- * 
+ *
  * Muestra estadísticas principales del tenant:
  * - Total de clientes
  * - Total de puntos acumulados
@@ -21,7 +21,7 @@ class DashboardController extends Controller
 {
     /**
      * Mostrar dashboard principal
-     * 
+     *
      * GET /{tenant}/dashboard
      */
     public function index(Request $request)
@@ -31,10 +31,10 @@ class DashboardController extends Controller
 
         // Obtener estadísticas principales
         $stats = $this->getStats();
-        
+
         // Obtener clientes recientes
         $clientesRecientes = $this->getClientesRecientes();
-        
+
         // Obtener actividad reciente
         $actividadReciente = $this->getActividadReciente();
 
@@ -49,29 +49,31 @@ class DashboardController extends Controller
 
     /**
      * Obtener estadísticas principales
-     * 
+     *
      * @return array
      */
     private function getStats()
     {
         // Total de clientes
         $totalClientes = Cliente::count();
-        
+
         // Total de puntos acumulados
         $totalPuntos = Cliente::sum('puntos_acumulados');
-        
+
         // Facturas del mes actual
         $facturasMes = Factura::delMes()->count();
-        
+
         // Puntos generados este mes
         $puntosGeneradosMes = Factura::delMes()->sum('puntos_generados');
-        
+
         // Puntos canjeados este mes
-        $puntosCanjeadosMes = PuntosCanjeado::delMes()->sum('puntos_canjeados');
-        
+        $puntosCanjeadosMes = PuntosCanjeado::delMes()
+            ->where('origen', '!=', 'ajuste')
+            ->sum('puntos_canjeados');
+
         // Clientes activos (con actividad en los últimos 30 días)
         $clientesActivos = Cliente::activos(30)->count();
-        
+
         // Facturas pendientes por vencer (próximos 30 días)
         $facturasPorVencer = Factura::porVencer(30)->count();
 
@@ -88,7 +90,7 @@ class DashboardController extends Controller
 
     /**
      * Obtener clientes recientes
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Collection
      */
     private function getClientesRecientes()
@@ -101,7 +103,7 @@ class DashboardController extends Controller
 
     /**
      * Obtener actividad reciente
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Collection
      */
     private function getActividadReciente()

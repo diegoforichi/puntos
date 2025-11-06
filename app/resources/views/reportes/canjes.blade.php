@@ -42,6 +42,12 @@
     </div>
 
     <!-- Resumen -->
+    @php
+        $canjesCollection = $canjes instanceof \Illuminate\Pagination\LengthAwarePaginator ? $canjes->getCollection() : (is_array($canjes) ? collect($canjes) : $canjes);
+        $totalCanjesPagina = $canjesCollection
+            ->where('origen', '!=', 'ajuste')
+            ->sum('puntos_canjeados');
+    @endphp
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="card">
@@ -55,7 +61,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="text-muted mb-2">Puntos Canjeados (esta página)</h6>
-                    <h3 class="mb-0 text-danger">{{ number_format($canjes->sum('puntos_canjeados'), 2, ',', '.') }}</h3>
+                    <h3 class="mb-0 text-danger">{{ number_format($totalCanjesPagina, 2, ',', '.') }}</h3>
                 </div>
             </div>
         </div>
@@ -79,11 +85,24 @@
                     </thead>
                     <tbody>
                         @foreach($canjes as $canje)
+                        @php
+                            $esAjuste = $canje->es_ajuste;
+                            $esSuma = $canje->es_ajuste_suma;
+                            $signo = $esSuma ? '+' : '-';
+                            $puntosClass = $esSuma ? 'text-success' : 'text-danger';
+                        @endphp
                         <tr>
                             <td><code>{{ $canje->codigo_cupon }}</code></td>
                             <td>{{ $canje->cliente->nombre }}</td>
-                            <td class="text-end"><strong class="text-danger">{{ number_format($canje->puntos_canjeados, 2, ',', '.') }}</strong></td>
-                            <td>{{ $canje->concepto }}</td>
+                            <td class="text-end">
+                                <strong class="{{ $puntosClass }}">{{ $signo }}{{ number_format($canje->puntos_canjeados, 2, ',', '.') }}</strong>
+                            </td>
+                            <td>
+                                {{ $canje->concepto }}
+                                @if($esAjuste)
+                                    <span class="badge bg-info-subtle text-info ms-1">Ajuste</span>
+                                @endif
+                            </td>
                             <td>{{ $canje->autorizadoPor->nombre ?? 'Sistema' }}</td>
                             <td>{{ $canje->created_at->format('d/m/Y H:i') }}</td>
                         </tr>

@@ -1,8 +1,33 @@
-### 2025-10-23
-- Añadí `allow_custom_whatsapp` y `allow_custom_email` en `tenants` para habilitar credenciales propias por canal.
-- Creé migración tenant para tablas `campanas` y `campana_envios` (base para envíos masivos).
-- Implementé `NotificationConfigResolver` y actualicé `WhatsAppService` y envíos de reportes diarios para usar config del tenant o global según corresponda.
-- SuperAdmin ahora puede activar/desactivar credenciales personalizadas y el tenant tiene pestaña `Integraciones` para gestionar WhatsApp/API y email SMTP.
+### 2025-11-04
+- **Correcciones críticas:**
+  - Corregido error de tipo en `ConfiguracionController::probarWhatsAppPersonalizado()`: ahora pasa correctamente `$config` como primer parámetro a `WhatsAppService::enviar()`.
+  - Removido `@include('partials.alerts')` innecesario de `clientes/create.blade.php` (las alertas ya están en el layout principal).
+- **Gestión avanzada de campañas:**
+  - Agregada migración `2025_11_04_000000_add_soft_deletes_and_paused_to_campanas.php` para soft deletes y índice en `estado`.
+  - Modelo `Campana` ahora usa `SoftDeletes` y tiene métodos helper: `puedeEditarse()`, `puedeEliminarse()`, `puedePausarse()`, `puedeReanudarse()`, `puedeEnviarse()`.
+  - Nuevos métodos en `CampanaController`: `pause()`, `resume()`, `destroy()` con validaciones de estado y registro de actividad.
+  - Rutas agregadas: `POST /campanas/{id}/pausar`, `POST /campanas/{id}/reanudar`, `DELETE /campanas/{id}`.
+  - Vista `campanas/index.blade.php`: dropdown con acciones contextuales según estado (pausar, reanudar, enviar, eliminar).
+  - Vista `campanas/show.blade.php`: botones dinámicos de acción según estado, con mensajes informativos si no hay acciones disponibles.
+  - Badges de estado mejorados con colores: `pausada` (gris), `en_cola`/`enviando` (azul), `fallida` (rojo), `completada` (verde), `pendiente` (amarillo).
+- **Formulario de creación de clientes:**
+  - Formulario manual de creación de clientes en `clientes/create.blade.php` (sin dependencia de facturación previa).
+  - Métodos `create()` y `store()` en `ClienteController` para registro manual con puntos iniciales opcionales.
+- **Personalización de mensajes de campaña:**
+  - Placeholders extendidos en WhatsApp y Email: `{nombre}`, `{puntos}`, `{comercio}`, `{telefono}`, `{email}`, `{documento}`.
+  - Límite de 200 caracteres para mensajes de WhatsApp con contador en tiempo real.
+  - `ProcesarEnvioCampana` valida presencia de teléfono/email antes de intentar enviar.
+
+### 2025-10-25
+- Base del módulo de campañas: modelos `Campana`/`CampanaEnvio`, vistas (index/create/show) y rutas tenant.
+- Comando `campanas:procesar-programadas` que encola campañas con fecha vencida.
+- Jobs `EnviarCampanaJob` y `ProcesarEnvioCampana` para envíos asíncronos con rate limiting.
+- Plantilla de email `CampanaMail` + `emails/campana.blade.php` con placeholders `{nombre}`/`{puntos}`.
+- Ajustes en `NotificationConfigResolver` y `WhatsAppService` para reutilizar credenciales resueltas.
+- Migraciones tenant actualizadas: columna `tenant_id` en `campanas`, `canal` en `campana_envios` y paths corregidos en comandos `tenant:migrate` y seed de superadmin.
+- `CampanaController` guarda totales como JSON nativo, programa fechas en formato `Y-m-d H:i:s` para SQLite y encola envíos inmediatos.
+- `ProcesarEnvioCampana` valida datos de contacto, aplica configuración SMTP por tenant antes de enviar y registra fallos detallados.
+- Sidebar actualizado para linkear sección `Campañas`.
 
 # Changelog
 

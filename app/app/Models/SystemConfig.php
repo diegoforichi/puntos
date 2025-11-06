@@ -11,12 +11,13 @@ class SystemConfig extends Model
     use HasFactory;
 
     protected $table = 'system_config';
+
     protected $connection = 'mysql';
 
     protected $fillable = [
         'key',
         'value',
-        'description'
+        'description',
     ];
 
     protected $casts = [
@@ -30,11 +31,11 @@ class SystemConfig extends Model
     public static function get(string $key, $default = null)
     {
         $config = self::where('key', $key)->first();
-        
-        if (!$config) {
+
+        if (! $config) {
             return $default;
         }
-        
+
         $value = $config->value;
 
         if (is_string($value)) {
@@ -67,7 +68,7 @@ class SystemConfig extends Model
             ['key' => $key],
             [
                 'value' => $value,
-                'description' => $description
+                'description' => $description,
             ]
         );
     }
@@ -78,10 +79,11 @@ class SystemConfig extends Model
     public static function getWhatsAppConfig(): array
     {
         return self::get('whatsapp', [
+            'usar_canal' => true,
             'activo' => false,
             'token' => '',
             'url' => '',
-            'codigo_pais' => '+598'
+            'codigo_pais' => '+598',
         ]);
     }
 
@@ -91,12 +93,13 @@ class SystemConfig extends Model
     public static function getEmailConfig(): array
     {
         return self::get('email', [
+            'usar_canal' => true,
             'smtp_host' => 'smtp.gmail.com',
             'smtp_port' => 587,
             'smtp_user' => '',
             'smtp_pass' => '',
             'from_address' => 'sistema@tudominio.com',
-            'from_name' => 'Sistema de Puntos'
+            'from_name' => 'Sistema de Puntos',
         ]);
     }
 

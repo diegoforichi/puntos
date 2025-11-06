@@ -235,6 +235,12 @@
             <a class="nav-link {{ request()->is('*/reportes*') ? 'active' : '' }}" href="/{{ $tenant->rut }}/reportes">
                 <i class="bi bi-file-earmark-bar-graph"></i> Reportes
             </a>
+
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('*/campanas*') ? 'active' : '' }}" href="/{{ $tenant->rut }}/campanas">
+                    <i class="bi bi-megaphone"></i> Campañas
+                </a>
+            </li>
             
             <hr class="text-secondary">
             

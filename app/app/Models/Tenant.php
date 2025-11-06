@@ -11,6 +11,9 @@ class Tenant extends Model
 {
     use HasFactory, SoftDeletes;
 
+    // Siempre en la base central MySQL
+    protected $connection = 'mysql';
+
     protected $fillable = [
         'rut',
         'nombre_comercial',
@@ -60,7 +63,7 @@ class Tenant extends Model
         $digits = preg_replace('/[^0-9]/', '', (string) $this->rut);
         $suffix = substr($digits, -4);
 
-        if (!$suffix) {
+        if (! $suffix) {
             return '0001';
         }
 
@@ -72,7 +75,7 @@ class Tenant extends Model
      */
     public static function generarApiKey(): string
     {
-        return 'tk_' . Str::random(40);
+        return 'tk_'.Str::random(40);
     }
 
     /**
@@ -102,11 +105,12 @@ class Tenant extends Model
     public function getColoresAttribute(): array
     {
         $json = $this->atributoColores ?? null;
-        if (!$json) {
+        if (! $json) {
             return [];
         }
 
         $decoded = json_decode($json, true);
+
         return is_array($decoded) ? $decoded : [];
     }
 

@@ -12,29 +12,32 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('campanas', function (Blueprint $table) {
-            $table->id();
-            $table->string('canal', 20)->comment('whatsapp o email');
+            $table->increments('id');
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->string('canal', 20)->comment('whatsapp,email,ambos');
+            $table->string('tipo_envio', 20)->default('todos')->comment('todos,activos,inactivos');
             $table->string('titulo', 255);
             $table->string('subtitulo', 255)->nullable();
             $table->string('imagen_url', 500)->nullable();
             $table->string('asunto_email', 255)->nullable();
-            $table->text('cuerpo');
+            $table->text('cuerpo_texto');
+            $table->text('mensaje_whatsapp')->nullable();
             $table->timestamp('fecha_programada')->nullable();
-            $table->enum('estado', ['borrador', 'pendiente', 'enviando', 'completada', 'pausada'])->default('borrador');
-            $table->unsignedInteger('total_destinatarios')->default(0);
-            $table->unsignedInteger('total_enviados')->default(0);
-            $table->unsignedInteger('total_fallidos')->default(0);
+            $table->string('estado', 20)->default('borrador');
+            $table->json('totales')->nullable();
             $table->timestamps();
 
+            $table->index('tenant_id');
             $table->index('canal');
             $table->index('estado');
             $table->index('fecha_programada');
         });
 
         Schema::create('campana_envios', function (Blueprint $table) {
-            $table->id();
+            $table->increments('id');
             $table->unsignedBigInteger('campana_id');
             $table->unsignedBigInteger('cliente_id');
+            $table->string('canal', 20)->default('whatsapp');
             $table->enum('estado', ['pendiente', 'enviado', 'fallido'])->default('pendiente');
             $table->unsignedTinyInteger('intentos')->default(0);
             $table->text('error_mensaje')->nullable();
@@ -46,6 +49,7 @@ return new class extends Migration
 
             $table->index(['campana_id', 'estado']);
             $table->index('cliente_id');
+            $table->index('canal');
         });
     }
 

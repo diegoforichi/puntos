@@ -47,7 +47,7 @@ class PuntosCanjeado extends Model
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            if (!$model->origen) {
+            if (! $model->origen) {
                 $model->origen = 'panel';
             }
         });
@@ -55,8 +55,6 @@ class PuntosCanjeado extends Model
 
     /**
      * Relación: Canje pertenece a un cliente
-     * 
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function cliente(): BelongsTo
     {
@@ -71,33 +69,35 @@ class PuntosCanjeado extends Model
 
     /**
      * Scope: Canjes del mes actual
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeDelMes($query)
     {
         return $query->whereYear('created_at', date('Y'))
-            ->whereMonth('created_at', date('m'));
+            ->whereMonth('created_at', date('m'))
+            ->where('origen', '!=', 'ajuste');
     }
 
     /**
      * Scope: Canjes de hoy
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeHoy($query)
     {
-        return $query->whereDate('created_at', today());
+        return $query->whereDate('created_at', today())
+            ->where('origen', '!=', 'ajuste');
     }
 
     /**
      * Scope: Canjes entre fechas
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $desde
-     * @param string $hasta
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $desde
+     * @param  string  $hasta
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeEntreFechas($query, $desde, $hasta)
@@ -107,21 +107,40 @@ class PuntosCanjeado extends Model
 
     /**
      * Formatear puntos canjeados
-     * 
-     * @return string
      */
     public function getPuntosFormateadosAttribute(): string
     {
         return number_format($this->puntos_canjeados, 2, ',', '.');
     }
 
+    public function getEsAjusteAttribute(): bool
+    {
+        return $this->origen === 'ajuste';
+    }
+
+    public function getEsAjusteSumaAttribute(): bool
+    {
+        return $this->es_ajuste && $this->referencia === 'ajuste_suma';
+    }
+
+    public function getPuntosFirmadosAttribute(): float
+    {
+        $valor = (float) $this->puntos_canjeados;
+
+        if ($this->es_ajuste_suma) {
+            return $valor;
+        }
+
+        return -$valor;
+    }
+
     /**
      * Obtener cupón de canje (código único)
-     * 
+     *
      * @return string
      */
     public function getCodigoCuponAttribute()
     {
-        return 'C-' . str_pad($this->id, 8, '0', STR_PAD_LEFT);
+        return 'C-'.str_pad($this->id, 8, '0', STR_PAD_LEFT);
     }
 }

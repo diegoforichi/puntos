@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Modelo Cliente
- * 
+ *
  * Representa un cliente final del comercio (tenant)
  * Cada cliente acumula puntos por sus compras
- * 
+ *
  * Tabla: clientes (SQLite del tenant)
  */
 class Cliente extends Model
@@ -44,7 +44,7 @@ class Cliente extends Model
 
     /**
      * Relación: Cliente tiene muchas facturas
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function facturas()
@@ -54,7 +54,7 @@ class Cliente extends Model
 
     /**
      * Relación: Cliente tiene muchos canjes de puntos
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function puntosCanjeados()
@@ -64,7 +64,7 @@ class Cliente extends Model
 
     /**
      * Relación: Cliente tiene muchos puntos vencidos
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function puntosVencidos()
@@ -74,7 +74,7 @@ class Cliente extends Model
 
     /**
      * Obtener facturas activas (no canjeadas ni vencidas)
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function facturasActivas()
@@ -85,8 +85,8 @@ class Cliente extends Model
 
     /**
      * Obtener facturas por vencer en los próximos N días
-     * 
-     * @param int $dias
+     *
+     * @param  int  $dias
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function facturasPorVencer($dias = 30)
@@ -97,9 +97,9 @@ class Cliente extends Model
 
     /**
      * Scope: Clientes activos (con actividad reciente)
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param int $dias
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  int  $dias
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActivos($query, $dias = 30)
@@ -107,10 +107,18 @@ class Cliente extends Model
         return $query->where('ultima_actividad', '>=', now()->subDays($dias));
     }
 
+    public function scopeInactivos($query, $dias = 90)
+    {
+        return $query->where(function ($q) use ($dias) {
+            $q->whereNull('ultima_actividad')
+                ->orWhere('ultima_actividad', '<', now()->subDays($dias));
+        });
+    }
+
     /**
      * Scope: Clientes con puntos disponibles
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeConPuntos($query)
@@ -120,24 +128,24 @@ class Cliente extends Model
 
     /**
      * Scope: Buscar por documento o nombre
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $search
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $search
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeBuscar($query, $search)
     {
-        return $query->where(function($q) use ($search) {
+        return $query->where(function ($q) use ($search) {
             $q->where('documento', 'LIKE', "%{$search}%")
-              ->orWhere('nombre', 'LIKE', "%{$search}%")
-              ->orWhere('email', 'LIKE', "%{$search}%");
+                ->orWhere('nombre', 'LIKE', "%{$search}%")
+                ->orWhere('email', 'LIKE', "%{$search}%");
         });
     }
 
     /**
      * Verificar si el cliente tiene puntos suficientes
-     * 
-     * @param float $puntos
+     *
+     * @param  float  $puntos
      * @return bool
      */
     public function tienePuntosSuficientes($puntos)
@@ -147,12 +155,12 @@ class Cliente extends Model
 
     /**
      * Formatear teléfono para WhatsApp (código país Uruguay)
-     * 
+     *
      * @return string|null
      */
     public function getTelefonoWhatsappAttribute()
     {
-        if (!$this->telefono) {
+        if (! $this->telefono) {
             return null;
         }
 
@@ -163,29 +171,30 @@ class Cliente extends Model
 
         // Agregar código de Uruguay (+598) y remover el 0 inicial
         $telefono = ltrim($this->telefono, '0');
-        return '+598' . $telefono;
+
+        return '+598'.$telefono;
     }
 
     /**
      * Obtener iniciales del nombre
-     * 
+     *
      * @return string
      */
     public function getInicialesAttribute()
     {
         $palabras = explode(' ', $this->nombre);
         $iniciales = '';
-        
+
         foreach (array_slice($palabras, 0, 2) as $palabra) {
             $iniciales .= strtoupper(substr($palabra, 0, 1));
         }
-        
+
         return $iniciales;
     }
 
     /**
      * Formatear puntos con separadores
-     * 
+     *
      * @return string
      */
     public function getPuntosFormateadosAttribute()

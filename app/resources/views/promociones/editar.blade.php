@@ -60,9 +60,6 @@
                                     onchange="actualizarValorLabel()"
                                     required
                                 >
-                                    <option value="descuento" {{ old('tipo', $promocion->tipo) === 'descuento' ? 'selected' : '' }}>
-                                        Descuento ($ fijo)
-                                    </option>
                                     <option value="bonificacion" {{ old('tipo', $promocion->tipo) === 'bonificacion' ? 'selected' : '' }}>
                                         Bonificación (% extra)
                                     </option>
@@ -257,10 +254,7 @@
         const valorLabel = document.getElementById('valorLabel');
         const valorHelp = document.getElementById('valorHelp');
         
-        if (tipo === 'descuento') {
-            valorLabel.textContent = 'Valor del Descuento ($) *';
-            valorHelp.textContent = 'Monto fijo a descontar';
-        } else if (tipo === 'bonificacion') {
+        if (tipo === 'bonificacion') {
             valorLabel.textContent = 'Porcentaje de Bonificación (%) *';
             valorHelp.textContent = 'Porcentaje extra de puntos';
         } else if (tipo === 'multiplicador') {

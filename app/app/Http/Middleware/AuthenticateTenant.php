@@ -2,19 +2,18 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Usuario;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Models\Usuario;
 
 /**
  * Middleware para verificar autenticación del usuario en el tenant
- * 
+ *
  * Verifica que:
  * 1. El usuario tenga una sesión activa
  * 2. El usuario existe en la tabla 'usuarios' del tenant
  * 3. El usuario está activo
- * 
+ *
  * Si no está autenticado, redirige al login del tenant
  */
 class AuthenticateTenant
@@ -22,8 +21,6 @@ class AuthenticateTenant
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
@@ -31,8 +28,18 @@ class AuthenticateTenant
         // Verificar si hay usuario en sesión
         $userId = session('usuario_id');
 
-        if (!$userId) {
-            $tenantRut = $request->route('tenant');
+        $tenantRut = $request->route('tenant');
+        $sessionData = session("tenant_sessions.{$tenantRut}");
+
+        if (! $userId || ! $sessionData) {
+            session()->forget([
+                'tenant_rut',
+                'usuario_id',
+                'usuario_nombre',
+                'usuario_email',
+                'usuario_rol',
+            ]);
+
             return redirect("/{$tenantRut}/login")
                 ->with('error', 'Debe iniciar sesión para continuar');
         }
@@ -43,10 +50,16 @@ class AuthenticateTenant
             ->where('activo', 1)
             ->first();
 
-        if (!$usuario) {
-            session()->forget(['usuario_id', 'usuario_nombre', 'usuario_email', 'usuario_rol']);
+        if (! $usuario) {
+            session()->forget([
+                'tenant_rut',
+                'usuario_id',
+                'usuario_nombre',
+                'usuario_email',
+                'usuario_rol',
+            ]);
+            session()->forget("tenant_sessions.{$tenantRut}");
 
-            $tenantRut = $request->route('tenant');
             return redirect("/{$tenantRut}/login")
                 ->with('error', 'Usuario no autorizado o inactivo');
         }
@@ -62,7 +75,17 @@ class AuthenticateTenant
         view()->share('usuario', $usuario);
 
         // Guardar campos básicos en sesión si no existen
+        $sessionPayload = [
+            'usuario_id' => $usuario->id,
+            'usuario_nombre' => $usuario->nombre,
+            'usuario_email' => $usuario->email,
+            'usuario_rol' => $usuario->rol,
+        ];
+
+        session()->put("tenant_sessions.{$tenantRut}", $sessionPayload);
         session([
+            'tenant_rut' => $tenantRut,
+            'usuario_id' => $usuario->id,
             'usuario_nombre' => $usuario->nombre,
             'usuario_email' => $usuario->email,
             'usuario_rol' => $usuario->rol,

@@ -73,14 +73,27 @@
         <div class="col-md-4">
             <div class="card stat-card success h-100">
                 <div class="card-body text-center">
-                    <i class="bi bi-trophy text-success" style="font-size: 3rem;"></i>
-                    <h2 class="mt-3 mb-1">{{ $cliente->puntos_formateados }}</h2>
+                    <i class="bi bi-trophy {{ $cliente->puntos_acumulados < 0 ? 'text-danger' : 'text-success' }}" style="font-size: 3rem;"></i>
+                    <h2 class="mt-3 mb-1 {{ $cliente->puntos_acumulados < 0 ? 'text-danger' : '' }}">{{ $cliente->puntos_formateados }}</h2>
                     <p class="text-muted mb-0">Puntos Disponibles</p>
                     
-                    @if(in_array($usuario->rol, ['admin', 'supervisor']) && $cliente->puntos_acumulados > 0)
-                    <a href="/{{ $tenant->rut }}/puntos/canjear?cliente_id={{ $cliente->id }}" class="btn btn-success btn-sm mt-3">
-                        <i class="bi bi-gift"></i> Canjear Puntos
-                    </a>
+                    @if(in_array($usuario->rol, ['admin', 'supervisor']))
+                    <div class="d-grid gap-2 mt-3">
+                        @if($cliente->puntos_acumulados > 0)
+                        <a href="/{{ $tenant->rut }}/puntos/canjear?cliente_id={{ $cliente->id }}" class="btn btn-success btn-sm">
+                            <i class="bi bi-gift"></i> Canjear Puntos
+                        </a>
+                        @endif
+                        <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjustarPuntos">
+                            <i class="bi bi-sliders"></i> Ajustar puntos
+                        </button>
+                    </div>
+                    @endif
+
+                    @if($cliente->puntos_acumulados < 0)
+                        <p class="text-danger small mt-3 mb-0">
+                            Este cliente tiene puntos pendientes de reintegrar.
+                        </p>
                     @endif
                 </div>
             </div>
@@ -201,10 +214,19 @@
                     @if($canjes->count() > 0)
                     <div class="list-group list-group-flush">
                         @foreach($canjes as $canje)
+                        @php
+                            $esAjuste = $canje->es_ajuste;
+                            $esSuma = $canje->es_ajuste_suma;
+                            $signo = $esSuma ? '+' : '-';
+                            $puntosClass = $esSuma ? 'text-success' : 'text-danger';
+                        @endphp
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-start gap-3">
                                 <div>
-                                    <strong class="text-danger">-{{ $canje->puntos_formateados }}</strong> puntos
+                                    <strong class="{{ $puntosClass }}">{{ $signo }}{{ $canje->puntos_formateados }}</strong> puntos
+                                    @if($esAjuste)
+                                        <span class="badge bg-info-subtle text-info ms-2">Ajuste</span>
+                                    @endif
                                     <br>
                                     <small class="text-muted">
                                         {{ $canje->concepto ?? 'Canje de puntos' }}
@@ -218,7 +240,7 @@
                                 <div class="text-end">
                                     <small class="text-muted d-block">{{ $canje->created_at->format('d/m/Y') }}</small>
                                     <small class="text-muted d-block">{{ $canje->created_at->format('H:i') }}</small>
-                                    @if(in_array($usuario->rol, ['admin', 'supervisor']))
+                                    @if(in_array($usuario->rol, ['admin', 'supervisor']) && $canje->origen !== 'ajuste')
                                     <a href="/{{ $tenant->rut }}/puntos/cupon/{{ $canje->id }}/pdf" target="_blank" class="btn btn-outline-secondary btn-sm mt-2">
                                         <i class="bi bi-printer"></i> Reimprimir
                                     </a>
@@ -280,6 +302,65 @@
     @endif
 </div>
 
+<!-- Modal Ajustar Puntos -->
+@if(in_array($usuario->rol, ['admin', 'supervisor']))
+<div class="modal fade" id="modalAjustarPuntos" tabindex="-1" aria-labelledby="modalAjustarPuntosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="/{{ $tenant->rut }}/clientes/{{ $cliente->id }}/ajustar-puntos" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAjustarPuntosLabel">Ajustar puntos del cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de ajuste</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo_ajuste" id="ajusteSumar" value="sumar" {{ old('tipo_ajuste', 'sumar') === 'sumar' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="ajusteSumar">Agregar puntos al cliente</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo_ajuste" id="ajusteRestar" value="restar" {{ old('tipo_ajuste') === 'restar' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="ajusteRestar">Quitar puntos al cliente</label>
+                        </div>
+                        @error('tipo_ajuste')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ajustePuntos" class="form-label">Cantidad de puntos</label>
+                        <input type="number" step="0.01" min="0" class="form-control @error('puntos') is-invalid @enderror" id="ajustePuntos" name="puntos" value="{{ old('puntos') }}" required>
+                        @error('puntos')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-0">
+                        <label for="ajusteMotivo" class="form-label">Motivo del ajuste</label>
+                        <textarea class="form-control @error('motivo') is-invalid @enderror" id="ajusteMotivo" name="motivo" rows="3" maxlength="500" required>{{ old('motivo') }}</textarea>
+                        @error('motivo')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="alert alert-light border mt-3" role="alert">
+                        <small class="text-muted">
+                            El ajuste quedará registrado en el historial del cliente y no enviará notificación automática.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar ajuste</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
 <style>
     .avatar-circle-large {
         width: 80px;
@@ -294,4 +375,15 @@
         font-size: 2rem;
     }
 </style>
+@if ($errors->has('tipo_ajuste') || $errors->has('puntos') || $errors->has('motivo'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modal = document.getElementById('modalAjustarPuntos');
+            if (modal) {
+                var instance = bootstrap.Modal.getOrCreateInstance(modal);
+                instance.show();
+            }
+        });
+    </script>
+@endif
 @endsection

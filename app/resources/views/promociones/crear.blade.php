@@ -63,9 +63,6 @@
                                     required
                                 >
                                     <option value="">Seleccione...</option>
-                                    <option value="descuento" {{ old('tipo') === 'descuento' ? 'selected' : '' }}>
-                                        Descuento ($ fijo)
-                                    </option>
                                     <option value="bonificacion" {{ old('tipo') === 'bonificacion' ? 'selected' : '' }}>
                                         Bonificación (% extra)
                                     </option>
@@ -273,10 +270,7 @@
         const valorLabel = document.getElementById('valorLabel');
         const valorHelp = document.getElementById('valorHelp');
         
-        if (tipo === 'descuento') {
-            valorLabel.textContent = 'Valor del Descuento ($) *';
-            valorHelp.textContent = 'Monto fijo a descontar (ej: 100)';
-        } else if (tipo === 'bonificacion') {
+        if (tipo === 'bonificacion') {
             valorLabel.textContent = 'Porcentaje de Bonificación (%) *';
             valorHelp.textContent = 'Porcentaje extra de puntos (ej: 20 para 20%)';
         } else if (tipo === 'multiplicador') {

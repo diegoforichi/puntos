@@ -421,21 +421,35 @@
                         <div class="card-body">
                             <form action="/{{ $tenant->rut }}/configuracion/whatsapp/custom" method="POST" class="vstack gap-3">
                                 @csrf
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="whatsappUsarCanal" name="usar_canal" value="1" {{ ($customWhatsApp['usar_canal'] ?? true) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="whatsappUsarCanal">Usar WhatsApp</label>
+                                </div>
+                                @if(!($customWhatsApp['usar_canal'] ?? true))
+                                    <div class="alert alert-warning py-2">
+                                        <small><i class="bi bi-exclamation-triangle me-1"></i>WhatsApp está desactivado para este comercio. No se enviarán notificaciones ni campañas por este canal hasta que lo actives.</small>
+                                    </div>
+                                @endif
                                 <div>
                                     <label class="form-label">URL del servicio</label>
-                                    <input type="url" name="url" class="form-control" value="{{ old('url', $customWhatsApp['url'] ?? '') }}" placeholder="https://..." required>
+                                    <input type="url" name="url" class="form-control" value="{{ old('url', $customWhatsApp['url'] ?? '') }}" placeholder="https://...">
                                 </div>
                                 <div>
                                     <label class="form-label">Token</label>
-                                    <input type="text" name="token" class="form-control" value="{{ old('token', $customWhatsApp['token'] ?? '') }}" placeholder="Token de autenticación" required>
+                                    <input type="text" name="token" class="form-control" value="{{ old('token', $customWhatsApp['token'] ?? '') }}" placeholder="Token de autenticación">
                                 </div>
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="whatsappActivo" name="activo" {{ ($customWhatsApp['activo'] ?? false) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="whatsappActivo">Habilitar servicio personalizado</label>
+                                    <input class="form-check-input" type="checkbox" id="whatsappActivo" name="activo" value="1" {{ ($customWhatsApp['activo'] ?? false) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="whatsappActivo">Usar credenciales personalizadas</label>
                                 </div>
-                                <button type="submit" class="btn btn-outline-success align-self-start">
-                                    <i class="bi bi-save me-1"></i>Guardar WhatsApp propio
-                                </button>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button type="submit" class="btn btn-outline-success" data-js="guardar-whatsapp">
+                                        <i class="bi bi-save me-1"></i>Guardar WhatsApp propio
+                                    </button>
+                                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalProbarWhatsApp">
+                                        <i class="bi bi-send-check me-1"></i>Probar envío
+                                    </button>
+                                </div>
                                 <small class="text-muted">Si deshabilitas esta opción, se utilizará la configuración global del SuperAdmin.</small>
                             </form>
                         </div>
@@ -453,13 +467,35 @@
                         <div class="card-body">
                             <form action="/{{ $tenant->rut }}/configuracion/email/custom" method="POST" class="row g-3">
                                 @csrf
+                                <div class="col-12">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="emailUsarCanal" name="usar_canal" value="1" {{ ($customEmail['usar_canal'] ?? true) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="emailUsarCanal">Usar Email</label>
+                                    </div>
+                                    @if(!($customEmail['usar_canal'] ?? true))
+                                        <div class="alert alert-warning py-2">
+                                            <small><i class="bi bi-exclamation-triangle me-1"></i>Email está desactivado para este comercio. Reportes y campañas no se enviarán hasta que actives el canal.</small>
+                                        </div>
+                                    @endif
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="emailActivo" name="activo" value="1" {{ ($customEmail['activo'] ?? false) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="emailActivo">Usar SMTP personalizado</label>
+                                    </div>
+                                    <div class="alert alert-info mt-3">
+                                        <small>
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Con una cuenta SMTP propia puedes enviar hasta <strong>50 correos diarios</strong> desde campañas o reportes automáticos.
+                                            Si necesitás envíos ilimitados, podés habilitar el servicio premium con la configuración global.
+                                        </small>
+                                    </div>
+                                </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Host SMTP</label>
-                                    <input type="text" class="form-control" name="host" value="{{ old('host', $customEmail['host'] ?? '') }}" placeholder="smtp.tudominio.com" required>
+                                    <input type="text" class="form-control" name="host" value="{{ old('host', $customEmail['host'] ?? '') }}" placeholder="smtp.tudominio.com">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Puerto</label>
-                                    <input type="number" class="form-control" name="port" value="{{ old('port', $customEmail['port'] ?? 587) }}" required>
+                                    <input type="number" class="form-control" name="port" value="{{ old('port', $customEmail['port'] ?? 587) }}">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Encriptación</label>
@@ -471,24 +507,29 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Usuario</label>
-                                    <input type="text" class="form-control" name="username" value="{{ old('username', $customEmail['username'] ?? '') }}" required>
+                                    <input type="text" class="form-control" name="username" value="{{ old('username', $customEmail['username'] ?? '') }}">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Contraseña</label>
-                                    <input type="password" class="form-control" name="password" value="{{ old('password', $customEmail['password'] ?? '') }}" required>
+                                    <input type="password" class="form-control" name="password" value="{{ old('password', $customEmail['password'] ?? '') }}">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Remitente (email)</label>
-                                    <input type="email" class="form-control" name="from_address" value="{{ old('from_address', $customEmail['from_address'] ?? '') }}" required>
+                                    <input type="email" class="form-control" name="from_address" value="{{ old('from_address', $customEmail['from_address'] ?? '') }}">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Remitente (nombre)</label>
-                                    <input type="text" class="form-control" name="from_name" value="{{ old('from_name', $customEmail['from_name'] ?? '') }}" required>
+                                    <input type="text" class="form-control" name="from_name" value="{{ old('from_name', $customEmail['from_name'] ?? '') }}">
                                 </div>
                                 <div class="col-12">
-                                    <button type="submit" class="btn btn-outline-primary">
-                                        <i class="bi bi-save me-1"></i>Guardar SMTP propio
-                                    </button>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button type="submit" class="btn btn-outline-primary" data-js="guardar-email">
+                                            <i class="bi bi-save me-1"></i>Guardar SMTP propio
+                                        </button>
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProbarEmail">
+                                            <i class="bi bi-envelope-check me-1"></i>Enviar prueba
+                                        </button>
+                                    </div>
                                     <small class="text-muted d-block mt-2">Los reportes y futuras campañas usarán estas credenciales.</small>
                                 </div>
                             </form>
@@ -619,6 +660,72 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Probar WhatsApp personalizado -->
+<div class="modal fade" id="modalProbarWhatsApp" tabindex="-1" aria-labelledby="modalProbarWhatsAppLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/{{ $tenant->rut }}/configuracion/whatsapp/custom/test" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalProbarWhatsAppLabel">
+                        <i class="bi bi-whatsapp me-2 text-success"></i>
+                        Enviar mensaje de prueba
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Enviaremos un WhatsApp usando la configuración personalizada guardada.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Número de teléfono</label>
+                        <input type="text" name="telefono" class="form-control" placeholder="Ej: 099123456" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mensaje de prueba</label>
+                        <textarea name="mensaje" class="form-control" rows="3" placeholder="Mensaje de prueba opcional">Hola 👋, este es un mensaje de prueba desde el panel del comercio.</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-send-check me-1"></i>Enviar prueba
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Probar Email personalizado -->
+<div class="modal fade" id="modalProbarEmail" tabindex="-1" aria-labelledby="modalProbarEmailLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/{{ $tenant->rut }}/configuracion/email/custom/test" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalProbarEmailLabel">
+                        <i class="bi bi-envelope-check me-2 text-primary"></i>
+                        Enviar correo de prueba
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Se utilizará la configuración SMTP personalizada guardada en este panel.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Correo destino</label>
+                        <input type="email" name="email_prueba" class="form-control" placeholder="correo@ejemplo.com" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-envelope-check me-1"></i>Enviar prueba
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

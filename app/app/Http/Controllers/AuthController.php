@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * Controlador de Autenticación
- * 
+ *
  * Gestiona:
  * - Login de usuarios del tenant
  * - Logout
@@ -18,26 +18,25 @@ class AuthController extends Controller
 {
     /**
      * Mostrar formulario de login
-     * 
+     *
      * GET /{tenant}/login
      */
     public function showLogin(Request $request)
     {
         $tenant = $request->attributes->get('tenant');
-        
-        // Si ya está autenticado, redirigir al dashboard
-        if (session('usuario_id')) {
+
+        if (session("tenant_sessions.{$tenant->rut}.usuario_id")) {
             return redirect("/{$tenant->rut}/dashboard");
         }
 
         return view('auth.login', [
-            'tenant' => $tenant
+            'tenant' => $tenant,
         ]);
     }
 
     /**
      * Procesar login
-     * 
+     *
      * POST /{tenant}/login
      */
     public function login(Request $request)
@@ -65,14 +64,22 @@ class AuthController extends Controller
         $usuario = $query->first();
 
         // Verificar que existe y la contraseña es correcta
-        if (!$usuario || !Hash::check($request->password, $usuario->password)) {
+        if (! $usuario || ! Hash::check($request->password, $usuario->password)) {
             return back()
                 ->withInput($request->only('email'))
                 ->with('error', 'Credenciales incorrectas');
         }
 
-        // Guardar en sesión
+        session()->put("tenant_sessions.{$tenant->rut}", [
+            'usuario_id' => $usuario->id,
+            'usuario_nombre' => $usuario->nombre,
+            'usuario_email' => $usuario->email,
+            'usuario_rol' => $usuario->rol,
+        ]);
+
+        // Guardar en sesión (valores inmediatos para la request actual)
         session([
+            'tenant_rut' => $tenant->rut,
             'usuario_id' => $usuario->id,
             'usuario_nombre' => $usuario->nombre,
             'usuario_email' => $usuario->email,
@@ -93,7 +100,7 @@ class AuthController extends Controller
 
     /**
      * Cerrar sesión
-     * 
+     *
      * POST /{tenant}/logout
      */
     public function logout(Request $request)
@@ -106,12 +113,15 @@ class AuthController extends Controller
             $this->registrarActividad($usuario->id, 'logout', 'Usuario cerró sesión');
         }
 
-        // Limpiar sesión
+        session()->forget("tenant_sessions.{$tenant->rut}");
+
+        // Limpiar sesión actual
         session()->forget([
+            'tenant_rut',
             'usuario_id',
             'usuario_nombre',
             'usuario_email',
-            'usuario_rol'
+            'usuario_rol',
         ]);
 
         return redirect("/{$tenant->rut}/login")
@@ -120,10 +130,10 @@ class AuthController extends Controller
 
     /**
      * Registrar actividad en el log
-     * 
-     * @param int $usuarioId
-     * @param string $accion
-     * @param string $descripcion
+     *
+     * @param  int  $usuarioId
+     * @param  string  $accion
+     * @param  string  $descripcion
      * @return void
      */
     private function registrarActividad($usuarioId, $accion, $descripcion)

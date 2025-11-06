@@ -5,6 +5,18 @@
 
 @section('content')
 <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Clientes</h1>
+            <p class="text-muted mb-0">Gestiona tu base de clientes y sus puntos</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/{{ $tenant->rut }}/clientes/crear" class="btn btn-primary">
+                <i class="bi bi-person-plus me-1"></i>
+                Nuevo Cliente
+            </a>
+        </div>
+    </div>
     <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-md-3 mb-3">

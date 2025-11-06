@@ -1,5 +1,5 @@
 # Arquitectura Técnica – Sistema de Puntos
-**Fecha actualización:** 02/10/2025
+**Fecha actualización:** 06/11/2025
 
 ---
 
@@ -30,8 +30,10 @@
 |-------|-----------|
 | `clientes` | Datos del cliente (documento, nombre, contacto, puntos, última actividad). |
 | `facturas` | Registros de facturas procesadas (monto, puntos, promoción aplicada, fechas, `cfe_id`, `acumulo`, `motivo_no_acumulo`, payload completo). |
-| `puntos_canjeados` | Historial de canjes (cliente, puntos, usuario que autorizó, FIFO aplicado). |
+| `puntos_canjeados` | Historial de canjes/ajustes (`origen`: `panel`, `api`, `ajuste`; `puntos_restantes`; referencia). |
 | `puntos_vencidos` | Historial de puntos eliminados por fecha de vencimiento. |
+| `campanas` | Definición de campañas (canal, contenido, programación, estado, totales). |
+| `campana_envios` | Envíos individuales por cliente (estado, canal, intentos, error, `sent_at`). |
 | `promociones` | Reglas de promociones (`tipo`, `valor`, `condiciones` JSON, `prioridad`, `activa`). |
 | `usuarios` | Usuarios del tenant (roles `admin`, `supervisor`, `operario`; campos `username`, `email` opcional, `password`, `rol`, `activo`). |
 | `actividades` | Auditoría interna (usuario, acción, descripción, datos JSON). |
@@ -100,6 +102,8 @@
 | `PromocionController` | `app/Http/Controllers/PromocionController.php` | CRUD de promociones. |
 | `WhatsAppService` | `app/Services/WhatsAppService.php` | Envío de mensajes WhatsApp usando config global; registra en `whatsapp_logs`. |
 | `NotificacionService` | `app/Services/NotificacionService.php` | Plantillas y disparadores de notificaciones (bienvenida, canje, vencimiento, promociones). |
+| `NotificationConfigResolver` | `app/Services/NotificationConfigResolver.php` | Resuelve credenciales (global o tenant) y expone `source` para aplicar límites dinámicos. |
+| `ProcesarEnvioCampana` | `app/Jobs/ProcesarEnvioCampana.php` | Job que procesa cada envío de campaña, aplica cuotas, reintentos y registra resultados. |
 
 ---
 
@@ -120,6 +124,9 @@
   - `tenant:setup-database {rut}` → genera archivo SQLite y ejecuta migraciones del tenant.
   - `tenant:query {rut}` (QueryTenantData) → inspector básico de datos del tenant (clientes, puntos, facturas).
   - `tenant:send-daily-reports` → envía resumen diario de actividad por email a todos los tenants activos (ejecutar vía cron a las 8:00 AM).
+- Cola `campanas`: se procesa con `php artisan queue:work --queue=campanas --max-jobs=30 --stop-when-empty` cada 15 minutos para dosificar envíos masivos.
+- Cuotas de email personalizado: contador diario por tenant almacenado en cache (`tenant:{id}:email_quota:{Y-m-d}`) con límite de 50 envíos/día.
+- WhatsApp campañas: `WhatsAppService` valida números (longitud mínima, evita repeticiones) y aplica una pausa de 2 segundos entre envíos para proteger el canal.
 
 ---
 
@@ -144,6 +151,8 @@
    - Admin configura promoción → guardada en SQLite → `PuntosService` evalúa promociones activas por prioridad en cada factura.
 5. **Portal público**:
    - Cliente ingresa documento → consulta `clientes` y `facturas` activas → opcionalmente actualiza contacto.
+6. **Campaña**:
+   - Admin genera campaña → se crean `campana_envios` → la cola `campanas` procesa cada envío, aplica cuotas/validaciones y registra resultado en la campaña.
 
 ---
 

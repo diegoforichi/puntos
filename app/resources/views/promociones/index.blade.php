@@ -5,15 +5,6 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Mensajes -->
-    @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-2"></i>
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-
     <!-- Header con botón -->
     <div class="row mb-4">
         <div class="col-12">
@@ -178,6 +169,24 @@
                                             <i class="bi bi-{{ $promocion->activa ? 'pause' : 'play' }}-circle"></i>
                                         </button>
                                     </form>
+
+                                    @if($promocion->activa)
+                                    <form
+                                        action="/{{ $tenant->rut }}/promociones/{{ $promocion->id }}/notificar"
+                                        method="POST"
+                                        class="d-inline"
+                                        onsubmit="return confirm('¿Enviar esta promoción por WhatsApp a todos los clientes con teléfono?');"
+                                    >
+                                        @csrf
+                                        <button
+                                            type="submit"
+                                            class="btn btn-outline-success"
+                                            title="Notificar clientes"
+                                        >
+                                            <i class="bi bi-megaphone"></i>
+                                        </button>
+                                    </form>
+                                    @endif
 
                                     <!-- Eliminar -->
                                     <button 
