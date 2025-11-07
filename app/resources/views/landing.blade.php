@@ -314,19 +314,19 @@
                 
                 <div class="row mt-5">
                     <div class="col-md-4 text-center">
-                        <i class="bi bi-lightning-charge" style="font-size: 3rem; color: var(--primary-color);"></i>
-                        <h5 class="mt-3">Webhook Automático</h5>
-                        <p class="text-muted">Recibe facturas en tiempo real desde tu sistema de facturación</p>
+                        <i class="bi bi-whatsapp" style="font-size: 3rem; color: var(--primary-color);"></i>
+                        <h5 class="mt-3">Campañas WhatsApp</h5>
+                        <p class="text-muted">Envío masivo con límite de 30 mensajes/minuto para proteger tu cuenta</p>
                     </div>
                     <div class="col-md-4 text-center">
-                        <i class="bi bi-clock-history" style="font-size: 3rem; color: var(--primary-color);"></i>
-                        <h5 class="mt-3">Procesamiento Instantáneo</h5>
-                        <p class="text-muted">Puntos acreditados en menos de 500ms por factura</p>
+                        <i class="bi bi-envelope-heart" style="font-size: 3rem; color: var(--primary-color);"></i>
+                        <h5 class="mt-3">Campañas Email</h5>
+                        <p class="text-muted">SMTP propio (50 emails/día) o servicio premium sin límites</p>
                     </div>
                     <div class="col-md-4 text-center">
-                        <i class="bi bi-shield-check" style="font-size: 3rem; color: var(--primary-color);"></i>
-                        <h5 class="mt-3">Seguro y Confiable</h5>
-                        <p class="text-muted">Autenticación por Bearer token, datos encriptados</p>
+                        <i class="bi bi-bullseye" style="font-size: 3rem; color: var(--primary-color);"></i>
+                        <h5 class="mt-3">Segmentación Inteligente</h5>
+                        <p class="text-muted">Envía a todos o grupos específicos con programación flexible</p>
                     </div>
                 </div>
             </div>
@@ -398,37 +398,121 @@
             </div>
         </section>
 
-        <!-- Estadísticas -->
+        <!-- Ventajas de Fidelizar -->
         <section class="py-5 bg-light">
             <div class="container">
                 <div class="section-title">
+                    <h2>¿Por Qué Fidelizar a Tus Clientes?</h2>
+                    <p>Un programa de puntos bien implementado transforma tu negocio</p>
+                </div>
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </div>
+                            <h5 class="fw-bold">Aumenta las Visitas Recurrentes</h5>
+                            <p class="text-muted mb-2">Los clientes con puntos acumulados vuelven más seguido para no perderlos.</p>
+                            <p class="mb-0"><strong class="text-primary">+30% de visitas</strong> en promedio según estudios de retail</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-cart-plus"></i>
+                            </div>
+                            <h5 class="fw-bold">Incrementa el Ticket Promedio</h5>
+                            <p class="text-muted mb-2">Los clientes compran más para alcanzar umbrales de puntos o promociones.</p>
+                            <p class="mb-0"><strong class="text-primary">+20% en ticket</strong> con promociones por monto mínimo</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-heart"></i>
+                            </div>
+                            <h5 class="fw-bold">Genera Lealtad de Marca</h5>
+                            <p class="text-muted mb-2">Un cliente fiel cuesta 5 veces menos que conseguir uno nuevo.</p>
+                            <p class="mb-0"><strong class="text-primary">Retención a largo plazo</strong> vs. clientes ocasionales</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-megaphone"></i>
+                            </div>
+                            <h5 class="fw-bold">Comunicación Directa</h5>
+                            <p class="text-muted mb-2">Canal directo por WhatsApp para promociones, novedades y ofertas exclusivas.</p>
+                            <p class="mb-0"><strong class="text-primary">Mayor engagement</strong> que redes sociales</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+                            <h5 class="fw-bold">Datos para Decisiones</h5>
+                            <p class="text-muted mb-2">Conocé el comportamiento de compra, frecuencia y preferencias de tus clientes.</p>
+                            <p class="mb-0"><strong class="text-primary">Reportes detallados</strong> para estrategias comerciales</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-trophy"></i>
+                            </div>
+                            <h5 class="fw-bold">Ventaja Competitiva</h5>
+                            <p class="text-muted mb-2">Diferenciáte de la competencia con un programa profesional y automático.</p>
+                            <p class="mb-0"><strong class="text-primary">Clientes prefieren</strong> comercios con beneficios</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-success mt-4 text-center">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    <strong>Dato clave:</strong> El 80% de las ventas provienen del 20% de clientes fieles. 
+                    Un programa de puntos te ayuda a identificar y retener ese 20%.
+                </div>
+            </div>
+        </section>
+
+        <!-- Estadísticas -->
+        <section class="py-5">
+            <div class="container">
+                <div class="section-title">
                     <h2>Sistema Probado y Confiable</h2>
-                    <p>Métricas de rendimiento y capacidad</p>
+                    <p>Automatización completa para tu tranquilidad</p>
                 </div>
                 
                 <div class="row">
                     <div class="col-md-3">
                         <div class="stats-box">
-                            <div class="stats-number">~500ms</div>
-                            <div>Procesamiento por factura</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stats-box">
-                            <div class="stats-number">5,000+</div>
-                            <div>Facturas/día por tenant</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stats-box">
-                            <div class="stats-number">50,000</div>
-                            <div>Clientes por comercio</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stats-box">
                             <div class="stats-number">100%</div>
-                            <div>Aislamiento de datos</div>
+                            <div>Automático</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <div class="stats-number">4</div>
+                            <div>Eventos de notificación</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <div class="stats-number">24/7</div>
+                            <div>Portal público</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <div class="stats-number">3</div>
+                            <div>Roles multi-usuario</div>
                         </div>
                     </div>
                 </div>
@@ -470,7 +554,7 @@
                             Desarrollado con Laravel 10 & PHP 8.2+
                         </p>
                         <p class="mb-0 small text-muted">
-                            © 2025 - Todos los derechos reservados
+                            © 2025 Sistema de Puntos - Todos los derechos reservados
                         </p>
                     </div>
                 </div>
