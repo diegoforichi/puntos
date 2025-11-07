@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Puntos - Gestión de Fidelización</title>
+    <title>Sistema de Puntos - Plataforma de Fidelización para Comercios</title>
+    <meta name="description" content="Plataforma integral de gestión de programas de fidelización con integración automática vía e-Factura, notificaciones WhatsApp y reportes completos.">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
@@ -11,58 +12,107 @@
         :root {
             --primary-color: #6366f1;
             --secondary-color: #8b5cf6;
+            --accent-color: #10b981;
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         
-        .landing-container {
-            max-width: 900px;
-            margin: 2rem auto;
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
-        .hero-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        
-        .hero-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        .hero-section {
+            padding: 4rem 0;
             color: white;
-            padding: 3rem 2rem;
             text-align: center;
         }
         
         .hero-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            animation: float 3s ease-in-out infinite;
         }
         
-        .feature-box {
-            padding: 1.5rem;
-            border-left: 4px solid var(--primary-color);
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .content-section {
+            background: white;
+            border-radius: 20px 20px 0 0;
+            margin-top: -2rem;
+            padding: 3rem 0;
+        }
+        
+        .feature-card {
+            padding: 2rem;
+            border-radius: 15px;
             background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            transition: transform 0.2s;
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+            height: 100%;
         }
         
-        .feature-box:hover {
-            transform: translateX(5px);
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         
         .feature-icon {
-            font-size: 2rem;
+            font-size: 2.5rem;
             color: var(--primary-color);
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .integration-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 50px;
+            margin: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .role-card {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s;
+        }
+        
+        .role-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .role-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stats-box {
+            text-align: center;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+        }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
         }
         
         .btn-primary-custom {
@@ -71,99 +121,361 @@
             padding: 0.75rem 2rem;
             font-weight: 600;
             border-radius: 50px;
-            transition: transform 0.2s;
+            transition: all 0.3s;
+            color: white;
         }
         
         .btn-primary-custom:hover {
             transform: scale(1.05);
             box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+            color: white;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-title p {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .footer {
+            background: #1f2937;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="landing-container">
-        <div class="hero-card">
-            <div class="hero-header">
-                <div class="hero-icon">
-                    <i class="bi bi-award-fill"></i>
-                </div>
-                <h1 class="display-4 fw-bold mb-3">Sistema de Puntos</h1>
-                <p class="lead mb-0">Plataforma de gestión de programas de fidelización para comercios</p>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-icon">
+                <i class="bi bi-award-fill"></i>
             </div>
-            
-            <div class="p-4 p-md-5">
-                <div class="row g-4 mb-4">
-                    <div class="col-md-6">
-                        <div class="feature-box">
+            <h1 class="display-3 fw-bold mb-3">Sistema de Puntos</h1>
+            <p class="lead mb-4">Plataforma integral de fidelización para comercios con integración automática</p>
+            <div class="mt-4">
+                <a href="/superadmin/login" class="btn btn-primary-custom btn-lg me-2 mb-2">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    Acceso SuperAdmin
+                </a>
+                <a href="#funcionalidades" class="btn btn-outline-light btn-lg mb-2">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Ver Funcionalidades
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Content Section -->
+    <div class="content-section">
+        <!-- Características Principales -->
+        <section id="funcionalidades" class="py-5">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Características Principales</h2>
+                    <p>Todo lo que necesitás para gestionar tu programa de fidelización</p>
+                </div>
+                
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="feature-card">
                             <div class="feature-icon">
                                 <i class="bi bi-graph-up-arrow"></i>
                             </div>
-                            <h5>Acumulación Automática</h5>
-                            <p class="text-muted mb-0">Integración con e-Factura para generar puntos automáticamente por cada compra</p>
+                            <h5 class="fw-bold">Acumulación Automática</h5>
+                            <p class="text-muted mb-0">Integración con e-Factura. Cada compra genera puntos automáticamente sin intervención manual.</p>
                         </div>
                     </div>
                     
-                    <div class="col-md-6">
-                        <div class="feature-box">
+                    <div class="col-md-4">
+                        <div class="feature-card">
                             <div class="feature-icon">
                                 <i class="bi bi-gift"></i>
                             </div>
-                            <h5>Canjes Flexibles</h5>
-                            <p class="text-muted mb-0">Sistema FIFO para canjear puntos de forma equitativa y transparente</p>
+                            <h5 class="fw-bold">Sistema FIFO</h5>
+                            <p class="text-muted mb-0">Canjes inteligentes con cupones PDF. Los puntos más antiguos se usan primero.</p>
                         </div>
                     </div>
                     
-                    <div class="col-md-6">
-                        <div class="feature-box">
+                    <div class="col-md-4">
+                        <div class="feature-card">
                             <div class="feature-icon">
                                 <i class="bi bi-whatsapp"></i>
                             </div>
-                            <h5>Notificaciones WhatsApp</h5>
-                            <p class="text-muted mb-0">Mantén a tus clientes informados en tiempo real sobre sus puntos</p>
+                            <h5 class="fw-bold">WhatsApp Automático</h5>
+                            <p class="text-muted mb-0">Notificaciones instantáneas: bienvenida, canjes, puntos por vencer y promociones.</p>
                         </div>
                     </div>
                     
-                    <div class="col-md-6">
-                        <div class="feature-box">
+                    <div class="col-md-4">
+                        <div class="feature-card">
                             <div class="feature-icon">
                                 <i class="bi bi-tags"></i>
                             </div>
-                            <h5>Promociones Dinámicas</h5>
-                            <p class="text-muted mb-0">Crea promociones temporales con multiplicadores de puntos</p>
+                            <h5 class="fw-bold">Promociones Dinámicas</h5>
+                            <p class="text-muted mb-0">Bonificaciones y multiplicadores (2x, 3x) con condiciones por fecha, monto o día de semana.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-megaphone"></i>
+                            </div>
+                            <h5 class="fw-bold">Campañas Masivas</h5>
+                            <p class="text-muted mb-0">Envío por WhatsApp y Email con límites inteligentes. Programación y seguimiento en tiempo real.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-bar-chart"></i>
+                            </div>
+                            <h5 class="fw-bold">Reportes Completos</h5>
+                            <p class="text-muted mb-0">Exportación CSV de clientes, facturas, canjes y actividades. Dashboard con métricas en tiempo real.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <h5 class="fw-bold">Multi-Usuario</h5>
+                            <p class="text-muted mb-0">3 roles con permisos granulares: Admin, Supervisor y Operario. Auditoría completa.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-globe"></i>
+                            </div>
+                            <h5 class="fw-bold">Portal Público</h5>
+                            <p class="text-muted mb-0">Autoconsulta sin login. Clientes ven sus puntos, vencimientos y datos del comercio 24/7.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-sliders"></i>
+                            </div>
+                            <h5 class="fw-bold">Ajustes Manuales</h5>
+                            <p class="text-muted mb-0">Suma o resta puntos con motivo obligatorio. Auditoría completa y protección contra saldos negativos.</p>
                         </div>
                     </div>
                 </div>
-                
-                <div class="alert alert-info mb-4">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>¿Eres cliente?</strong> Consulta tus puntos acumulados ingresando al portal de tu comercio.
+            </div>
+        </section>
+
+        <!-- Integraciones -->
+        <section class="py-5 bg-light">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Integraciones</h2>
+                    <p>Conectá tu sistema de facturación y comunicaciones</p>
                 </div>
                 
                 <div class="text-center">
-                    <a href="/superadmin/login" class="btn btn-primary-custom btn-lg me-2 mb-2">
-                        <i class="bi bi-shield-lock me-2"></i>
-                        Acceso SuperAdmin
-                    </a>
-                    <a href="#" class="btn btn-outline-secondary btn-lg mb-2" onclick="alert('Ingresa a la URL de tu comercio: tudominio.com/{RUT}/login'); return false;">
-                        <i class="bi bi-building me-2"></i>
-                        Acceso Comercios
-                    </a>
+                    <span class="integration-badge">
+                        <i class="bi bi-receipt me-2"></i>e-Factura Uruguay
+                    </span>
+                    <span class="integration-badge">
+                        <i class="bi bi-whatsapp me-2"></i>WhatsApp Business API
+                    </span>
+                    <span class="integration-badge">
+                        <i class="bi bi-envelope me-2"></i>Email SMTP
+                    </span>
+                    <span class="integration-badge">
+                        <i class="bi bi-currency-exchange me-2"></i>Multi-Moneda (UYU, USD, ARS)
+                    </span>
                 </div>
                 
-                <hr class="my-4">
-                
-                <div class="text-center text-muted small">
-                    <p class="mb-1">
-                        <i class="bi bi-code-square me-1"></i>
-                        Sistema de Puntos v1.0
-                    </p>
-                    <p class="mb-0">
-                        <i class="bi bi-github me-1"></i>
-                        Desarrollado con Laravel 10 & PHP 8.2+
-                    </p>
+                <div class="row mt-5">
+                    <div class="col-md-4 text-center">
+                        <i class="bi bi-lightning-charge" style="font-size: 3rem; color: var(--primary-color);"></i>
+                        <h5 class="mt-3">Webhook Automático</h5>
+                        <p class="text-muted">Recibe facturas en tiempo real desde tu sistema de facturación</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <i class="bi bi-clock-history" style="font-size: 3rem; color: var(--primary-color);"></i>
+                        <h5 class="mt-3">Procesamiento Instantáneo</h5>
+                        <p class="text-muted">Puntos acreditados en menos de 500ms por factura</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <i class="bi bi-shield-check" style="font-size: 3rem; color: var(--primary-color);"></i>
+                        <h5 class="mt-3">Seguro y Confiable</h5>
+                        <p class="text-muted">Autenticación por Bearer token, datos encriptados</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- Roles -->
+        <section class="py-5">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Roles y Permisos</h2>
+                    <p>Control granular de acceso según responsabilidades</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="role-card">
+                            <div class="role-icon" style="color: #ef4444;">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                            <h4 class="fw-bold">Admin</h4>
+                            <p class="text-muted">Control total del sistema</p>
+                            <ul class="list-unstyled text-start">
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Gestión de clientes</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Canjes y ajustes</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Promociones</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Campañas</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Usuarios</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Configuración</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="role-card">
+                            <div class="role-icon" style="color: #f59e0b;">
+                                <i class="bi bi-person-check"></i>
+                            </div>
+                            <h4 class="fw-bold">Supervisor</h4>
+                            <p class="text-muted">Operaciones y gestión</p>
+                            <ul class="list-unstyled text-start">
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Gestión de clientes</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Canjes y ajustes</li>
+                                <li><i class="bi bi-eye text-primary me-2"></i>Ver promociones</li>
+                                <li><i class="bi bi-eye text-primary me-2"></i>Ver campañas</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Reportes</li>
+                                <li><i class="bi bi-x-circle text-danger me-2"></i>Sin config/usuarios</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="role-card">
+                            <div class="role-icon" style="color: #10b981;">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            <h4 class="fw-bold">Operario</h4>
+                            <p class="text-muted">Solo operaciones básicas</p>
+                            <ul class="list-unstyled text-start">
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Buscar clientes</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Ver detalles</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Canjear puntos</li>
+                                <li><i class="bi bi-x-circle text-danger me-2"></i>Sin edición</li>
+                                <li><i class="bi bi-x-circle text-danger me-2"></i>Sin reportes</li>
+                                <li><i class="bi bi-x-circle text-danger me-2"></i>Sin config</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Estadísticas -->
+        <section class="py-5 bg-light">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Sistema Probado y Confiable</h2>
+                    <p>Métricas de rendimiento y capacidad</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <div class="stats-number">~500ms</div>
+                            <div>Procesamiento por factura</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <div class="stats-number">5,000+</div>
+                            <div>Facturas/día por tenant</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <div class="stats-number">50,000</div>
+                            <div>Clientes por comercio</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <div class="stats-number">100%</div>
+                            <div>Aislamiento de datos</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="container">
+                <h2 class="display-5 fw-bold mb-4">¿Listo para fidelizar a tus clientes?</h2>
+                <p class="lead mb-4">Implementá tu programa de puntos en 1 día. Sin costos por transacción.</p>
+                <a href="/superadmin/login" class="btn btn-light btn-lg me-2 mb-2">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    Acceso SuperAdmin
+                </a>
+                <a href="#" class="btn btn-outline-light btn-lg mb-2" onclick="alert('Para acceso a tu comercio, ingresá a: tudominio.com/{RUT}/login\n\nSi sos cliente, consultá tus puntos en: tudominio.com/{RUT}/consulta'); return false;">
+                    <i class="bi bi-building me-2"></i>
+                    Acceso Comercios
+                </a>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6 text-md-start text-center mb-3 mb-md-0">
+                        <p class="mb-1">
+                            <i class="bi bi-award-fill me-2"></i>
+                            <strong>Sistema de Puntos v1.4</strong>
+                        </p>
+                        <p class="mb-0 small text-muted">
+                            Plataforma integral de fidelización para comercios
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-md-end text-center">
+                        <p class="mb-1">
+                            <i class="bi bi-code-square me-2"></i>
+                            Desarrollado con Laravel 10 & PHP 8.2+
+                        </p>
+                        <p class="mb-0 small text-muted">
+                            © 2025 - Todos los derechos reservados
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </footer>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
