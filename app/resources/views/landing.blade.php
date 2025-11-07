@@ -172,16 +172,7 @@
             </div>
             <h1 class="display-3 fw-bold mb-3">Sistema de Puntos</h1>
             <p class="lead mb-4">Plataforma integral de fidelización para comercios con integración automática</p>
-            <div class="mt-4">
-                <a href="/superadmin/login" class="btn btn-primary-custom btn-lg me-2 mb-2">
-                    <i class="bi bi-shield-lock me-2"></i>
-                    Acceso SuperAdmin
-                </a>
-                <a href="#funcionalidades" class="btn btn-outline-light btn-lg mb-2">
-                    <i class="bi bi-info-circle me-2"></i>
-                    Ver Funcionalidades
-                </a>
-            </div>
+            <p class="mb-0">Versión 1.4 | Multi-tenant | Integración e-Factura</p>
         </div>
     </section>
 
@@ -524,14 +515,10 @@
             <div class="container">
                 <h2 class="display-5 fw-bold mb-4">¿Listo para fidelizar a tus clientes?</h2>
                 <p class="lead mb-4">Implementá tu programa de puntos en 1 día. Sin costos por transacción.</p>
-                <a href="/superadmin/login" class="btn btn-light btn-lg me-2 mb-2">
-                    <i class="bi bi-shield-lock me-2"></i>
-                    Acceso SuperAdmin
-                </a>
-                <a href="#" class="btn btn-outline-light btn-lg mb-2" onclick="alert('Para acceso a tu comercio, ingresá a: tudominio.com/{RUT}/login\n\nSi sos cliente, consultá tus puntos en: tudominio.com/{RUT}/consulta'); return false;">
-                    <i class="bi bi-building me-2"></i>
-                    Acceso Comercios
-                </a>
+                <p class="mb-0">
+                    <i class="bi bi-envelope me-2"></i>
+                    Contactanos para más información sobre implementación y precios
+                </p>
             </div>
         </section>
 
