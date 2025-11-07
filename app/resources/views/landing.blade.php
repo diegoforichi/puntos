@@ -171,8 +171,7 @@
                 <i class="bi bi-award-fill"></i>
             </div>
             <h1 class="display-3 fw-bold mb-3">Sistema de Puntos</h1>
-            <p class="lead mb-4">Plataforma integral de fidelización para comercios con integración automática</p>
-            <p class="mb-0">Versión 1.4 | Multi-tenant | Integración e-Factura</p>
+            <p class="lead mb-0">Plataforma integral de fidelización para comercios con integración automática</p>
         </div>
     </section>
 
@@ -526,19 +525,10 @@
         <footer class="footer">
             <div class="container">
                 <div class="row">
-                    <div class="col-md-6 text-md-start text-center mb-3 mb-md-0">
-                        <p class="mb-1">
+                    <div class="col-12 text-center">
+                        <p class="mb-2">
                             <i class="bi bi-award-fill me-2"></i>
-                            <strong>Sistema de Puntos v1.4</strong>
-                        </p>
-                        <p class="mb-0 small text-muted">
-                            Plataforma integral de fidelización para comercios
-                        </p>
-                    </div>
-                    <div class="col-md-6 text-md-end text-center">
-                        <p class="mb-1">
-                            <i class="bi bi-code-square me-2"></i>
-                            Desarrollado con Laravel 10 & PHP 8.2+
+                            <strong>Sistema de Puntos</strong>
                         </p>
                         <p class="mb-0 small text-muted">
                             © 2025 Sistema de Puntos - Todos los derechos reservados
