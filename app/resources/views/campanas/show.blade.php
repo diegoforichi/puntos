@@ -57,9 +57,9 @@
                             @endif
                         </dd>
                         <dt class="col-sm-5">Creada</dt>
-                        <dd class="col-sm-7">{{ $campana->created_at?->format('d/m/Y H:i') }}</dd>
+                        <dd class="col-sm-7">{{ $campana->created_at?->setTimezone('America/Montevideo')->format('d/m/Y H:i') }}</dd>
                         <dt class="col-sm-5">Actualizada</dt>
-                        <dd class="col-sm-7">{{ $campana->updated_at?->format('d/m/Y H:i') }}</dd>
+                        <dd class="col-sm-7">{{ $campana->updated_at?->setTimezone('America/Montevideo')->format('d/m/Y H:i') }}</dd>
                     </dl>
 
                     <hr>
@@ -70,6 +70,12 @@
                             <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#modalEnviarPrueba">
                                 <i class="bi bi-send-check me-1"></i>Enviar prueba
                             </button>
+                        @endif
+
+                        @if($campana->estado === 'borrador')
+                            <a href="{{ route('tenant.campanas.edit', [$tenant->rut, $campana->id]) }}" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-pencil-square me-1"></i>Editar contenido
+                            </a>
                         @endif
 
                         @if($campana->puedeEnviarse())
@@ -206,7 +212,7 @@
                                                     try { $sentAt = \Illuminate\Support\Carbon::parse($sentAt); } catch (\Throwable $e) { $sentAt = null; }
                                                 }
                                             @endphp
-                                            {{ $sentAt ? $sentAt->format('d/m/Y H:i') : '—' }}
+                                            {{ $sentAt ? $sentAt->setTimezone('America/Montevideo')->format('d/m/Y H:i') : '—' }}
                                         </td>
                                         <td class="text-muted small">
                                             {{ Str::limit($envio->error_mensaje, 60) ?? '—' }}
@@ -346,7 +352,10 @@
                     <p class="text-muted small mb-3">Se creará una copia de esta campaña como <strong>Borrador</strong> con todo el contenido.</p>
                     <div class="mb-3">
                         <label class="form-label">Nuevo nombre (opcional)</label>
-                        <input type="text" name="titulo_duplicado" class="form-control" placeholder="{{ $campana->titulo }} (Copia)" value="{{ $campana->titulo }} (Copia)">
+                        <input type="text" name="titulo_duplicado" class="form-control" placeholder="{{ $campana->titulo }} (Copia)" value="{{ old('titulo_duplicado', $campana->titulo.' (Copia)') }}">
+                        @error('duplicar')
+                            <div class="text-danger small mt-2">{{ $message }}</div>
+                        @enderror
                         <div class="form-text">Si lo dejas vacío, se agregará "(Copia)" al nombre original.</div>
                     </div>
                 </div>
@@ -400,6 +409,19 @@
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 var modalEl = document.getElementById('modalEnviarPrueba');
+                if (modalEl) {
+                    var modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            });
+        </script>
+    @endpush
+@endif
+@if(session('mostrar_modal_duplicar'))
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var modalEl = document.getElementById('modalDuplicar');
                 if (modalEl) {
                     var modal = new bootstrap.Modal(modalEl);
                     modal.show();

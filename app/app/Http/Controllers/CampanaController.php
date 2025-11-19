@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CampanaController extends Controller
 {
@@ -42,32 +43,7 @@ class CampanaController extends Controller
         $tenant = $request->attributes->get('tenant');
         $usuario = $request->attributes->get('usuario');
 
-        $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:255'],
-            'canal' => ['required', Rule::in(['whatsapp', 'email', 'ambos'])],
-            'segmento' => ['required', Rule::in(['todos', 'activos', 'inactivos'])],
-            'mensaje_whatsapp' => ['nullable', 'string', 'max:200'],
-            'titulo_email' => ['nullable', 'string', 'max:255'],
-            'subtitulo_email' => ['nullable', 'string', 'max:255'],
-            'imagen_email' => ['nullable', 'url', 'max:255'],
-            'texto_email' => ['nullable', 'string', 'max:10000'],
-            'asunto_email' => ['nullable', 'string', 'max:255'],
-            'programar' => ['nullable', 'boolean'],
-            'fecha_programada' => ['nullable', 'date'],
-            'hora_programada' => ['nullable', 'date_format:H:i'],
-        ]);
-
-        if (in_array($validated['canal'], ['whatsapp', 'ambos']) && empty($validated['mensaje_whatsapp'])) {
-            return back()->withErrors(['mensaje_whatsapp' => 'El mensaje de WhatsApp es obligatorio para este canal.'])->withInput();
-        }
-
-        if (in_array($validated['canal'], ['email', 'ambos']) && empty($validated['texto_email'])) {
-            return back()->withErrors(['texto_email' => 'El contenido principal del email es obligatorio para este canal.'])->withInput();
-        }
-
-        if (! empty($validated['programar']) && (empty($validated['fecha_programada']) || empty($validated['hora_programada']))) {
-            return back()->withErrors(['programar' => 'Debes indicar fecha y hora para programar la campaña.'])->withInput();
-        }
+        $validated = $this->validarCampanaInputs($request);
 
         $destinatarios = collect();
         $enviosCreados = collect();
@@ -82,7 +58,7 @@ class CampanaController extends Controller
                 $fechaProgramada = Carbon::createFromFormat(
                     'Y-m-d H:i',
                     sprintf('%s %s', $validated['fecha_programada'], $validated['hora_programada']),
-                    config('app.timezone')
+                    'America/Montevideo'
                 )->seconds(0);
             }
 
@@ -135,8 +111,8 @@ class CampanaController extends Controller
                         'estado' => 'pendiente',
                         'intentos' => 0,
                         'error_mensaje' => null,
-                        'created_at' => now()->toDateTimeString(),
-                        'updated_at' => now()->toDateTimeString(),
+                        'created_at' => now('America/Montevideo')->toDateTimeString(),
+                        'updated_at' => now('America/Montevideo')->toDateTimeString(),
                     ]);
                 }
             }
@@ -182,6 +158,100 @@ class CampanaController extends Controller
             ->with('success', 'Campaña creada correctamente.');
     }
 
+    public function edit(Request $request, string $tenantRut, int $id)
+    {
+        $tenant = $request->attributes->get('tenant');
+        $campana = Campana::findOrFail($id);
+
+        if ($campana->estado !== 'borrador') {
+            return redirect()->route('tenant.campanas.show', [$tenant->rut, $campana->id])
+                ->with('error', 'Solo las campañas en borrador pueden editarse.');
+        }
+
+        return view('campanas.create', compact('tenant', 'campana'));
+    }
+
+    public function update(Request $request, string $tenantRut, int $id)
+    {
+        $tenant = $request->attributes->get('tenant');
+        $usuario = $request->attributes->get('usuario');
+        $campana = Campana::findOrFail($id);
+
+        if ($campana->estado !== 'borrador') {
+            return redirect()->route('tenant.campanas.show', [$tenant->rut, $campana->id])
+                ->with('error', 'Esta campaña ya no puede editarse.');
+        }
+
+        $validated = $this->validarCampanaInputs($request);
+
+        $cambioSegmento = $campana->tipo_envio !== $validated['segmento'];
+        $cambioCanal = $campana->canal !== $validated['canal'];
+        $requiereRegenerarEnvios = $cambioSegmento || $cambioCanal;
+
+        DB::connection('tenant')->transaction(function () use ($validated, $tenant, $campana, $usuario) {
+            $fechaProgramada = null;
+
+            if (! empty($validated['programar'])) {
+                $fechaProgramada = Carbon::createFromFormat(
+                    'Y-m-d H:i',
+                    sprintf('%s %s', $validated['fecha_programada'], $validated['hora_programada']),
+                    'America/Montevideo'
+                )->seconds(0);
+            }
+
+            $nuevoEstado = $fechaProgramada ? 'pendiente' : 'borrador';
+
+            $campana->update([
+                'canal' => $validated['canal'],
+                'tipo_envio' => $validated['segmento'],
+                'titulo' => $validated['titulo_email'] ?? $validated['nombre'],
+                'subtitulo' => $validated['subtitulo_email'] ?? null,
+                'imagen_url' => $validated['imagen_email'] ?? null,
+                'asunto_email' => $validated['asunto_email'] ?? null,
+                'cuerpo_texto' => $validated['texto_email'] ?? $validated['mensaje_whatsapp'],
+                'mensaje_whatsapp' => $validated['mensaje_whatsapp'] ?? null,
+                'fecha_programada' => $fechaProgramada?->toDateTimeString(),
+                'estado' => $nuevoEstado,
+            ]);
+
+            Actividad::registrar(
+                $usuario->id,
+                Actividad::ACCION_CAMPANIA,
+                'Actualizó campaña',
+                [
+                    'campana_id' => $campana->id,
+                    'canal' => $campana->canal,
+                    'tipo_envio' => $campana->tipo_envio,
+                ]
+            );
+        });
+
+        $campana->refresh();
+
+        $mensaje = 'Campaña actualizada correctamente.';
+
+        if ($requiereRegenerarEnvios) {
+            CampanaEnvio::where('campana_id', $campana->id)->delete();
+            $resultados = $this->prepararEnviosParaCampana($campana);
+            $mensaje .= ' Destinatarios recalculados: '.$resultados['destinatarios'].'.';
+        } else {
+            $enviosExistentes = CampanaEnvio::where('campana_id', $campana->id)->count();
+
+            if ($enviosExistentes === 0) {
+                $resultados = $this->prepararEnviosParaCampana($campana);
+                $mensaje .= ' Destinatarios preparados: '.$resultados['destinatarios'].'.';
+            } else {
+                $destinatariosUnicos = CampanaEnvio::where('campana_id', $campana->id)
+                    ->distinct('cliente_id')
+                    ->count();
+                $mensaje .= ' Destinatarios: '.$destinatariosUnicos.'.';
+            }
+        }
+
+        return redirect()->route('tenant.campanas.show', [$tenant->rut, $campana->id])
+            ->with('success', $mensaje);
+    }
+
     public function show(Request $request, string $tenantRut, int $id)
     {
         $campana = Campana::findOrFail($id);
@@ -222,8 +292,17 @@ class CampanaController extends Controller
         $programacion = Carbon::createFromFormat(
             'Y-m-d H:i',
             sprintf('%s %s', $validated['fecha_programada'], $validated['hora_programada']),
-            config('app.timezone')
+            'America/Montevideo'
         )->seconds(0);
+
+        // Si la campaña aún no tiene envíos preparados, generarlos ahora
+        if ($campana->envios()->count() === 0) {
+            $resultados = $this->prepararEnviosParaCampana($campana);
+
+            if (($resultados['total_envios'] ?? 0) === 0) {
+                return back()->with('error', 'No se encontraron destinatarios válidos para la campaña.');
+            }
+        }
 
         $campana->update([
             'fecha_programada' => $programacion->toDateTimeString(),
@@ -489,6 +568,17 @@ class CampanaController extends Controller
             'titulo_duplicado' => ['nullable', 'string', 'max:255'],
         ]);
 
+        if (! empty($campana->mensaje_whatsapp)) {
+            $mensajeBytes = strlen(rawurlencode($campana->mensaje_whatsapp));
+
+            if ($mensajeBytes > 950) {
+                return back()
+                    ->withErrors(['duplicar' => "El mensaje de WhatsApp de esta campaña supera el límite permitido ({$mensajeBytes}/950 bytes). Duplicála manualmente ajustando el texto."])
+                    ->with('mostrar_modal_duplicar', true)
+                    ->withInput();
+            }
+        }
+
         $nueva = $campana->duplicar();
 
         if (! empty($validated['titulo_duplicado'])) {
@@ -514,8 +604,8 @@ class CampanaController extends Controller
             $mensaje .= ' No se encontraron destinatarios válidos todavía.';
         }
 
-        return redirect()->route('tenant.campanas.show', [$tenantRut, $nueva->id])
-            ->with('success', $mensaje);
+        return redirect()->route('tenant.campanas.edit', [$tenantRut, $nueva->id])
+            ->with('success', $mensaje.' Revisá el contenido antes de enviar.');
     }
 
     private function prepararEnviosParaCampana(Campana $campana): array
@@ -548,14 +638,16 @@ class CampanaController extends Controller
                     'estado' => 'pendiente',
                     'intentos' => 0,
                     'error_mensaje' => null,
-                    'created_at' => now()->toDateTimeString(),
-                    'updated_at' => now()->toDateTimeString(),
+                    'created_at' => now('America/Montevideo')->toDateTimeString(),
+                    'updated_at' => now('America/Montevideo')->toDateTimeString(),
                 ]);
             }
         }
 
         if ($envios->isNotEmpty()) {
-            CampanaEnvio::insert($envios->all());
+            foreach ($envios->chunk(100) as $chunk) {
+                CampanaEnvio::insert($chunk->toArray());
+            }
         }
 
         $whatsapp = $envios->where('canal', 'whatsapp')->count();
@@ -577,5 +669,53 @@ class CampanaController extends Controller
             'whatsapp' => $whatsapp,
             'email' => $email,
         ];
+    }
+
+    private function validarCampanaInputs(Request $request): array
+    {
+        $validated = $request->validate([
+            'nombre' => ['required', 'string', 'max:255'],
+            'canal' => ['required', Rule::in(['whatsapp', 'email', 'ambos'])],
+            'segmento' => ['required', Rule::in(['todos', 'activos', 'inactivos'])],
+            'mensaje_whatsapp' => ['nullable', 'string', 'max:700'],
+            'titulo_email' => ['nullable', 'string', 'max:255'],
+            'subtitulo_email' => ['nullable', 'string', 'max:255'],
+            'imagen_email' => ['nullable', 'url', 'max:255'],
+            'texto_email' => ['nullable', 'string', 'max:10000'],
+            'asunto_email' => ['nullable', 'string', 'max:255'],
+            'programar' => ['nullable', 'boolean'],
+            'fecha_programada' => ['nullable', 'date'],
+            'hora_programada' => ['nullable', 'date_format:H:i'],
+        ]);
+
+        if (in_array($validated['canal'], ['whatsapp', 'ambos']) && empty($validated['mensaje_whatsapp'])) {
+            throw ValidationException::withMessages([
+                'mensaje_whatsapp' => 'El mensaje de WhatsApp es obligatorio para este canal.',
+            ]);
+        }
+
+        if (! empty($validated['mensaje_whatsapp'])) {
+            $mensajeBytes = strlen(rawurlencode($validated['mensaje_whatsapp']));
+
+            if ($mensajeBytes > 950) {
+                throw ValidationException::withMessages([
+                    'mensaje_whatsapp' => "El mensaje de WhatsApp supera el límite permitido ({$mensajeBytes}/950 bytes). Reducí emojis o saltos de línea.",
+                ]);
+            }
+        }
+
+        if (in_array($validated['canal'], ['email', 'ambos']) && empty($validated['texto_email'])) {
+            throw ValidationException::withMessages([
+                'texto_email' => 'El contenido principal del email es obligatorio para este canal.',
+            ]);
+        }
+
+        if (! empty($validated['programar']) && (empty($validated['fecha_programada']) || empty($validated['hora_programada']))) {
+            throw ValidationException::withMessages([
+                'programar' => 'Debes indicar fecha y hora para programar la campaña.',
+            ]);
+        }
+
+        return $validated;
     }
 }

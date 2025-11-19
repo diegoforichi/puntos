@@ -12,8 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('campanas:procesar-programadas')->everyMinute()->onOneServer();
+        $schedule->command('campanas:procesar-programadas')->everyFifteenMinutes()->onOneServer();
         $schedule->command('tenant:tareas-diarias')->daily()->at('03:00');
+        $schedule->command('tenant:compactar-sqlite')->weeklyOn(1, '04:00')->withoutOverlapping();
     }
 
     /**

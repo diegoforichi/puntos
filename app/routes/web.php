@@ -158,6 +158,8 @@ Route::prefix('{tenant}')->middleware(['tenant'])->group(function () {
             Route::get('/campanas/crear', [CampanaController::class, 'create'])->name('tenant.campanas.create');
             Route::post('/campanas', [CampanaController::class, 'store'])->name('tenant.campanas.store');
             Route::get('/campanas/{id}', [CampanaController::class, 'show'])->name('tenant.campanas.show');
+            Route::get('/campanas/{id}/editar', [CampanaController::class, 'edit'])->name('tenant.campanas.edit');
+            Route::put('/campanas/{id}', [CampanaController::class, 'update'])->name('tenant.campanas.update');
             Route::post('/campanas/{id}/programar', [CampanaController::class, 'schedule'])->name('tenant.campanas.schedule');
             Route::post('/campanas/{id}/enviar', [CampanaController::class, 'sendNow'])->name('tenant.campanas.send');
             Route::post('/campanas/{id}/enviar-prueba', [CampanaController::class, 'sendTest'])->name('tenant.campanas.send-test');

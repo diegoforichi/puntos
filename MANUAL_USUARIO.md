@@ -228,25 +228,71 @@
 
 ### 3.9 Campañas (Admin)
 
-- **Tipos de envío:** WhatsApp, Email o Ambos.
-- **Estados:** borrador → pendiente → en proceso → completada.
-- **Fuentes de clientes:** todos los clientes activos, listas segmentadas (próximamente).
+#### Tipos de campaña
+- **Canales disponibles:** WhatsApp, Email o Ambos.
+- **Segmentos:** Todos los clientes, Clientes activos (últimos 60 días), Clientes inactivos (más de 90 días).
 
-**Flujo de trabajo:**
-1. Crear campaña (título, mensaje, canal, programación).
-2. Revisar resumen de destinatarios y confirmar.
-3. Ejecutar “Enviar ahora” o programar para una fecha/hora.
-4. El sistema genera un envío (`campana_envios`) por cliente y los coloca en la cola `campanas`.
-5. El cron `queue:work --max-jobs=30` procesa lotes de mensajes cada 15 minutos.
+#### Estados de una campaña
+| Estado | Descripción |
+|--------|-------------|
+| **Borrador** | Campaña creada pero no enviada. Puede editarse y duplicarse. |
+| **Pendiente** | Campaña programada esperando su fecha/hora de ejecución. |
+| **En cola** | Campaña lista para envío inmediato, generando jobs. |
+| **Enviando** | Envíos en proceso activo. |
+| **Pausada** | Campaña detenida temporalmente (solo desde estado pendiente). |
+| **Completada** | Todos los envíos fueron procesados. |
+| **Cancelada** | Campaña cancelada manualmente. |
 
-**Límites y buenas prácticas:**
-- WhatsApp: la cola espera 2 segundos entre mensajes para evitar bloqueos del proveedor.
-- Email propio (SMTP del tenant): límite automático de **50 correos diarios**. Al superarlo, los envíos restantes se reintentan el día siguiente.
-- Email global (servicio premium): sin límites diarios.
+#### Flujo de trabajo
 
-**Monitoreo:**
-- Desde el detalle de la campaña se ve el avance (enviados, fallidos, pendientes).
-- El historial guarda el origen del envío (`panel`, `api`, `ajuste`) para auditoría.
+**1. Crear campaña:**
+- Define nombre, canal (WhatsApp/Email/Ambos), segmento de clientes.
+- Configura contenido:
+  - **WhatsApp:** Mensaje de hasta 700 caracteres (máximo 950 bytes codificados). Soporta formato: `*negritas*`, `_cursivas_`. Variables: `{nombre}`, `{puntos}`.
+  - **Email:** Asunto, título, subtítulo, imagen (URL), texto principal.
+- Opciones al guardar:
+  - **Enviar inmediatamente:** Pasa a estado `en_cola` y se envía al guardar.
+  - **Programar envío:** Marca fecha/hora y pasa a estado `pendiente`.
+  - **Guardar como borrador:** Queda en estado `borrador` para editar después.
+
+**2. Editar campaña (solo en borrador):**
+- Desde el detalle de una campaña en `borrador`, botón **"Editar contenido"**.
+- Permite modificar canal, segmento, mensajes y programación.
+- **Comportamiento de destinatarios al editar:**
+  - Si cambió el **segmento** o **canal**: se recalculan todos los destinatarios.
+  - Si solo cambió el **contenido** (mensaje, asunto): se mantienen los destinatarios existentes.
+- Al programar desde la edición, el estado cambia automáticamente a `pendiente`.
+
+**3. Duplicar campaña:**
+- Desde el detalle de una campaña completada/cancelada, botón **"Duplicar campaña"**.
+- Crea una copia en estado `borrador` con todo el contenido.
+- Redirige automáticamente al formulario de edición para revisar antes de enviar.
+
+**4. Enviar o programar:**
+- **Enviar ahora:** Desde el detalle, confirmar con checklist de seguridad. Pasa a `en_cola`.
+- **Programar:** Define fecha/hora específica. El sistema la ejecutará automáticamente vía cron.
+- **Cambiar programación:** Desde el detalle, reprogramar una campaña pendiente.
+
+**5. Procesamiento automático:**
+- El sistema genera un registro `campana_envios` por cada cliente/canal.
+- Los envíos se colocan en la cola `campanas`.
+- El cron `queue:work` procesa lotes cada 15 minutos.
+- WhatsApp: espera 2 segundos entre mensajes para evitar bloqueos del proveedor.
+
+**6. Monitoreo:**
+- Desde el detalle: resumen de programados, enviados, fallidos.
+- Tabla con últimos 50 envíos (cliente, estado, intentos, fecha, mensaje de error).
+- El historial de actividades registra todas las acciones sobre la campaña.
+
+#### Límites y buenas prácticas
+- **WhatsApp:** Máximo 700 caracteres y 950 bytes codificados (emojis y saltos de línea ocupan más bytes).
+- **Email propio (SMTP del tenant):** Límite automático de **50 correos diarios**. Al superarlo, los envíos restantes se reintentan el día siguiente.
+- **Email global (servicio premium):** Sin límites diarios.
+- **Pruebas:** Siempre enviar una prueba antes de ejecutar la campaña masiva (botón "Enviar prueba").
+
+#### Pausar y reanudar
+- **Pausar:** Solo campañas en estado `pendiente`. Detiene la ejecución programada.
+- **Reanudar:** Campañas pausadas vuelven a estado `pendiente` y se ejecutarán en su fecha programada.
 
 ---
 
@@ -345,8 +391,8 @@ El sistema acepta el formato estándar de e-Factura (Uruguay):
   - Clientes con puntos por vencer (próximos 7 días)
 
 **Nota:** Este comando se ejecuta automáticamente como parte de `tenant:tareas-diarias`.
-**Límite por tenant:** Cuando un comercio usa su SMTP propio, el sistema impone un máximo de **50 correos diarios** para evitar bloqueos. Los envíos restantes se reintentan automáticamente al día siguiente.
-**SMTP global:** La configuración premium del SuperAdmin no posee límites diarios.
+**Límite por tenant:** Cuando un comercio usa su SMTP propio, el sistema impone un máximo de **200 correos diarios** para evitar bloqueos. Los envíos restantes se reintentan automáticamente al día siguiente.
+**SMTP global:** La configuración premium del SuperAdmin permite hasta **2.000 correos diarios** con un límite adicional de **400 por hora** (acorde a Bluehost).
 
 #### WhatsApp
 - **Servicio:** Endpoint externo con método GET.
