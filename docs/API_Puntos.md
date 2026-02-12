@@ -64,11 +64,43 @@ Errores:
 - 422 puntos insuficientes.
 - 401 token inválido.
 
+### 3. Cancelar facturas (reversar puntos)
+`POST /api/webhook/ingest/cancel`
+
+Usa el **mismo payload JSON** que el webhook de alta (`/api/webhook/ingest`). El sistema buscará la factura por `numero_factura` y documento del cliente, revertirá los puntos generados **sin permitir saldos negativos** y eliminará la factura.
+
+Ejemplo:
+```http
+POST https://app.midominio.com/api/webhook/ingest/cancel
+Authorization: Bearer pk_xxxxxx
+Content-Type: application/json
+
+{ ... mismo contenido de hookCfe.json ... }
+```
+
+Respuesta 200:
+```json
+{
+  "status": "ok",
+  "numero_factura": "A001-12345",
+  "cliente_documento": "56896934",
+  "puntos_revertidos": -45.00,
+  "saldo_actual": 0,
+  "mensaje": "Factura cancelada y puntos ajustados"
+}
+```
+
+Errores:
+- 404 cliente o factura inexistente.
+- 400 payload inválido / formato desconocido.
+- 401 token inválido.
+
 ## Recomendaciones
 - Registrar localmente la referencia del canje (factura, pedido, etc.).
 - Implementar reintentos con backoff en caso de errores 5xx.
 - Proteger el token como credencial sensible. Si se sospecha filtración, regenerarlo desde SuperAdmin.
 - Los canjes API quedan marcados con origen `api` y visibles en reportes y auditoría.
+- Las notas de crédito y cancelaciones nunca dejan saldos negativos: si el cliente ya consumió puntos, solo se restará hasta 0 y se registrará el ajuste aplicado.
 
 ## Soporte
 Ante dudas contactar a soporte indicando RUT del tenant, fecha/hora y descripción del evento o solicitud.

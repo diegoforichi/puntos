@@ -131,9 +131,11 @@ class WhatsAppService
             ]);
 
             DB::connection('tenant_log')->table('whatsapp_logs')->insert([
-                'telefono' => $telefono,
+                'cliente_id' => null,
+                'numero' => $telefono,
+                'evento' => 'campana',
                 'mensaje' => $mensaje,
-                'estado' => $estado,
+                'estado' => str_starts_with($estado, 'exitoso') ? 'enviado' : 'fallido',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

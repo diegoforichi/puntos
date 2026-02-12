@@ -27,8 +27,14 @@
     <div class="card mb-4">
         <div class="card-body">
             <form action="/{{ $tenant->rut }}/reportes/clientes" method="GET" class="row g-3">
+                <!-- Búsqueda -->
+                <div class="col-md-3">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="buscar" class="form-control" placeholder="Nombre, documento o email" value="{{ $filtros['buscar'] ?? '' }}">
+                </div>
+
                 <!-- Estado -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Estado</label>
                     <select name="estado" class="form-select">
                         <option value="">Todos los clientes</option>
@@ -42,7 +48,7 @@
                 </div>
 
                 <!-- Orden -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Ordenar por</label>
                     <select name="orden" class="form-select">
                         <option value="puntos_desc" {{ ($filtros['orden'] ?? 'puntos_desc') === 'puntos_desc' ? 'selected' : '' }}>
@@ -61,10 +67,13 @@
                 </div>
 
                 <!-- Botón -->
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-funnel"></i> Aplicar Filtros
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-funnel"></i> Filtrar
                     </button>
+                    <a href="/{{ $tenant->rut }}/reportes/clientes" class="btn btn-outline-secondary" title="Limpiar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
                 </div>
             </form>
         </div>

@@ -133,9 +133,16 @@ class CampanaController extends Controller
 
         $campana = $campanaCreada;
 
+        if (! $campana) {
+            return redirect()->route('tenant.campanas.index', $tenant->rut)
+                ->with('error', 'No se pudo crear la campaña.');
+        }
+
         // Insertar envíos en batch fuera de la transacción para evitar bloqueos
         if ($enviosCreados->isNotEmpty()) {
-            CampanaEnvio::insert($enviosCreados->all());
+            foreach ($enviosCreados->chunk(100) as $chunk) {
+                CampanaEnvio::insert($chunk->toArray());
+            }
         }
 
         // Actualizar totales
@@ -151,7 +158,7 @@ class CampanaController extends Controller
         ]);
 
         if (! $campana->esProgramada() && $enviarInmediato) {
-            EnviarCampanaJob::dispatch($campana->id)->onQueue('campanas');
+            EnviarCampanaJob::dispatch($campana->id, $tenant->id)->onQueue('campanas');
         }
 
         return redirect()->route('tenant.campanas.index', $tenant->rut)
@@ -336,7 +343,7 @@ class CampanaController extends Controller
             'estado' => 'en_cola',
         ]);
 
-        EnviarCampanaJob::dispatch($campana->id)->onQueue('campanas');
+        EnviarCampanaJob::dispatch($campana->id, (int) $campana->tenant_id)->onQueue('campanas');
 
         return back()->with('success', 'Campaña marcada para envío inmediato.');
     }

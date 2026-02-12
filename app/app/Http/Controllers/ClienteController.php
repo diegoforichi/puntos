@@ -263,7 +263,7 @@ class ClienteController extends Controller
         // Registrar actividad
         Actividad::registrar(
             $usuario->id,
-            Actividad::ACCION_CLIENTE_CREADO,
+            Actividad::ACCION_CLIENTE_ACTUALIZADO,
             "Cliente {$cliente->nombre} actualizado",
             ['cliente_id' => $cliente->id]
         );
@@ -294,6 +294,40 @@ class ClienteController extends Controller
             'usuario' => $usuario,
             'cliente' => $cliente,
             'facturas' => $facturas,
+        ]);
+    }
+
+    /**
+     * Ver historial completo de canjes del cliente
+     *
+     * GET /{tenant}/clientes/{id}/canjes
+     */
+    public function canjes(Request $request, $tenantRut, $id)
+    {
+        $tenant = $request->attributes->get('tenant');
+        $usuario = $request->attributes->get('usuario');
+
+        $cliente = Cliente::findOrFail($id);
+
+        // Obtener todos los canjes paginados
+        $canjes = $cliente->puntosCanjeados()
+            ->with('autorizadoPor:id,nombre')
+            ->orderBy('created_at', 'desc')
+            ->paginate(20)->withQueryString();
+
+        // Estadísticas
+        $stats = [
+            'total_canjes' => $cliente->puntosCanjeados()->where('origen', '!=', 'ajuste')->count(),
+            'total_puntos_canjeados' => $cliente->puntosCanjeados()->where('origen', '!=', 'ajuste')->sum('puntos_canjeados'),
+            'total_ajustes' => $cliente->puntosCanjeados()->where('origen', 'ajuste')->count(),
+        ];
+
+        return view('clientes.canjes', [
+            'tenant' => $tenant,
+            'usuario' => $usuario,
+            'cliente' => $cliente,
+            'canjes' => $canjes,
+            'stats' => $stats,
         ]);
     }
 

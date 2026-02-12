@@ -36,7 +36,7 @@ return [
 
         'database' => [
             'driver' => 'database',
-            'connection' => env('QUEUE_DB_CONNECTION', 'mysql'),
+            'connection' => 'mysql',
             'table' => 'jobs',
             'queue' => 'default',
             'retry_after' => 90,

@@ -40,6 +40,8 @@
                         <option value="canje_puntos" {{ ($filtros['accion'] ?? '') === 'canje_puntos' ? 'selected' : '' }}>Canjes</option>
                         <option value="factura_procesada" {{ ($filtros['accion'] ?? '') === 'factura_procesada' ? 'selected' : '' }}>Facturas</option>
                         <option value="promocion_gestionada" {{ ($filtros['accion'] ?? '') === 'promocion_gestionada' ? 'selected' : '' }}>Promociones</option>
+                        <option value="ajuste_puntos" {{ ($filtros['accion'] ?? '') === 'ajuste_puntos' ? 'selected' : '' }}>Ajustes</option>
+                        <option value="cliente_actualizado" {{ ($filtros['accion'] ?? '') === 'cliente_actualizado' ? 'selected' : '' }}>Clientes editados</option>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -52,10 +54,12 @@
     </div>
 
     <!-- Información -->
+    @if($actividades->total() > 0)
     <div class="alert alert-info mb-4">
         <i class="bi bi-info-circle me-2"></i>
-        Mostrando las últimas <strong>500 actividades</strong> que coinciden con los filtros.
+        <strong>{{ number_format($actividades->total()) }}</strong> actividad(es) encontradas. Mostrando 50 por página.
     </div>
+    @endif
 
     <!-- Resultados -->
     <div class="card">
@@ -95,5 +99,17 @@
             @endif
         </div>
     </div>
+    @if($actividades->count() > 0)
+    <div class="card mt-3">
+        <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <small class="text-muted">
+                Mostrando
+                <span class="fw-semibold">{{ $actividades->firstItem() }}-{{ $actividades->lastItem() }}</span>
+                de <span class="fw-semibold">{{ $actividades->total() }}</span> actividad(es)
+            </small>
+            {{ $actividades->links('vendor.pagination.bootstrap-5') }}
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

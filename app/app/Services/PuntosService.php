@@ -3,12 +3,12 @@
 namespace App\Services;
 
 use App\DTOs\StandardInvoiceDTO;
+use App\Jobs\EnviarNotificacionWhatsApp;
 use App\Models\Configuracion;
 use App\Models\Promocion;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Services\NotificacionService;
 
 /**
  * Servicio para gestionar puntos de clientes
@@ -29,14 +29,14 @@ class PuntosService
     private function configurarConexionTenant(): void
     {
         $sqlitePath = $this->tenant->getSqlitePath();
-        
+
         config([
             'database.connections.tenant' => [
                 'driver' => 'sqlite',
                 'database' => $sqlitePath,
                 'prefix' => '',
                 'foreign_key_constraints' => false,
-            ]
+            ],
         ]);
     }
 
@@ -80,18 +80,26 @@ class PuntosService
 
             $fechaVencimiento = now()->addDays($diasVencimiento);
 
+            $puntosAplicados = 0;
+
+            if ($permitidoAcumular && $puntosFinales !== 0) {
+                $ajusteSaldo = $this->ajustarSaldoCliente($cliente['id'], $puntosFinales);
+                $puntosAplicados = $ajusteSaldo['ajuste_aplicado'];
+                $cliente['puntos_acumulados'] = $ajusteSaldo['saldo_nuevo'];
+            }
+
             $facturaData = [
                 'cliente_id' => $cliente['id'],
                 'numero_factura' => $factura->numeroFactura,
                 'monto_total' => $factura->montoTotal,
                 'moneda' => $factura->moneda,
-                'puntos_generados' => $puntosFinales,
+                'puntos_generados' => $puntosAplicados,
                 'promocion_aplicada' => $promocionAplicada,
                 'payload_json' => json_encode($factura->payloadOriginal, JSON_UNESCAPED_UNICODE),
                 'fecha_emision' => $factura->fechaEmision,
                 'fecha_vencimiento' => $fechaVencimiento,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ];
 
             $facturaDataExtendida = $facturaData + [
@@ -114,21 +122,9 @@ class PuntosService
                 }
             }
 
-            if ($permitidoAcumular && $puntosFinales !== 0) {
-                DB::connection('tenant')->table('clientes')
-                    ->where('id', $cliente['id'])
-                    ->update([
-                        'puntos_acumulados' => DB::raw('puntos_acumulados + ' . $puntosFinales),
-                        'ultima_actividad' => now(),
-                        'updated_at' => now(),
-                    ]);
-
-                $cliente['puntos_acumulados'] += $puntosFinales;
-            }
-
             $this->registrarActividad('factura_procesada', "Factura {$factura->numeroFactura} procesada", [
                 'cliente_documento' => $cliente['documento'],
-                'puntos_generados' => $puntosFinales,
+                'puntos_generados' => $puntosAplicados,
                 'monto' => $factura->montoTotal,
                 'acumulo' => $permitidoAcumular,
                 'motivo_no_acumulo' => $motivoNoAcumulo,
@@ -146,7 +142,7 @@ class PuntosService
             $inboxDataExtendido = $inboxData + [
                 'cfe_id' => $factura->cfeId,
                 'documento_cliente' => $factura->documentoCliente,
-                'puntos_generados' => $puntosFinales,
+                'puntos_generados' => $puntosAplicados,
                 'motivo_no_acumulo' => $motivoNoAcumulo,
             ];
 
@@ -164,14 +160,12 @@ class PuntosService
                 }
             }
 
-            $puntosTotales = $permitidoAcumular
-                ? ($cliente['puntos_acumulados'] + $puntosFinales)
-                : $cliente['puntos_acumulados'];
+            $puntosTotales = $cliente['puntos_acumulados'];
 
             return [
                 'success' => true,
                 'cliente' => $cliente,
-                'puntos_generados' => $puntosFinales,
+                'puntos_generados' => $puntosAplicados,
                 'puntos_totales' => $puntosTotales,
                 'factura_id' => $facturaId,
                 'estado' => $permitidoAcumular ? 'procesado' : 'omitido',
@@ -181,13 +175,50 @@ class PuntosService
         } catch (\Exception $e) {
             Log::error('Error procesando factura', [
                 'error' => $e->getMessage(),
-                'factura' => $factura->numeroFactura
+                'factura' => $factura->numeroFactura,
             ]);
 
             throw $e;
         }
     }
-    
+
+    /**
+     * Ajustar saldo del cliente sin permitir negativos
+     */
+    public function ajustarSaldoCliente(int $clienteId, float $delta): array
+    {
+        $delta = round($delta, 2);
+        $saldoAnterior = (float) DB::connection('tenant')
+            ->table('clientes')
+            ->where('id', $clienteId)
+            ->value('puntos_acumulados');
+
+        if ($delta === 0.0) {
+            return [
+                'saldo_anterior' => $saldoAnterior,
+                'saldo_nuevo' => $saldoAnterior,
+                'ajuste_aplicado' => 0.0,
+            ];
+        }
+
+        $saldoNuevo = round(max(0, $saldoAnterior + $delta), 2);
+        $ajusteAplicado = round($saldoNuevo - $saldoAnterior, 2);
+
+        DB::connection('tenant')->table('clientes')
+            ->where('id', $clienteId)
+            ->update([
+                'puntos_acumulados' => $saldoNuevo,
+                'ultima_actividad' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return [
+            'saldo_anterior' => $saldoAnterior,
+            'saldo_nuevo' => $saldoNuevo,
+            'ajuste_aplicado' => $ajusteAplicado,
+        ];
+    }
+
     /**
      * Obtener o crear cliente
      */
@@ -204,12 +235,12 @@ class PuntosService
                 $updates['telefono'] = $telefonoNormalizado;
                 $clienteData['telefono'] = $telefonoNormalizado;
             }
-            if ($email && !$cliente->email) {
+            if ($email && ! $cliente->email) {
                 $updates['email'] = $email;
                 $clienteData['email'] = $email;
             }
 
-            if (!empty($updates)) {
+            if (! empty($updates)) {
                 DB::connection('tenant')->table('clientes')->where('id', $cliente->id)->update($updates);
             }
 
@@ -224,7 +255,7 @@ class PuntosService
             'puntos_acumulados' => 0,
             'ultima_actividad' => now(),
             'created_at' => now(),
-            'updated_at' => now()
+            'updated_at' => now(),
         ]);
 
         $nuevoCliente = [
@@ -233,15 +264,21 @@ class PuntosService
             'nombre' => $nombre,
             'telefono' => $telefonoNormalizado,
             'email' => $email,
-            'puntos_acumulados' => 0
+            'puntos_acumulados' => 0,
         ];
 
-        $notificaciones = new NotificacionService($this->tenant);
-        $notificaciones->notificarBienvenida($nuevoCliente);
+        // Enviar bienvenida de forma asíncrona con delay para evitar bloqueos
+        if ($telefonoNormalizado) {
+            EnviarNotificacionWhatsApp::dispatch(
+                $this->tenant->id,
+                EnviarNotificacionWhatsApp::TIPO_BIENVENIDA,
+                $nuevoCliente
+            )->delay(now()->addSeconds(random_int(3, 8)));
+        }
 
         return $nuevoCliente;
     }
-    
+
     /**
      * Obtener configuración del tenant
      */
@@ -250,7 +287,7 @@ class PuntosService
         $puntosPorPesos = DB::connection('tenant')->table('configuracion')
             ->where('key', 'puntos_por_pesos')
             ->value('value');
-        
+
         $diasVencimiento = DB::connection('tenant')->table('configuracion')
             ->where('key', 'dias_vencimiento')
             ->value('value');
@@ -284,7 +321,7 @@ class PuntosService
 
         return ['monto' => $factura->montoTotal, 'omitido' => true];
     }
-    
+
     /**
      * Registrar actividad en el log
      */
@@ -296,16 +333,13 @@ class PuntosService
             'descripcion' => $descripcion,
             'datos_json' => json_encode($datos, JSON_UNESCAPED_UNICODE),
             'created_at' => now(),
-            'updated_at' => now()
+            'updated_at' => now(),
         ]);
     }
-    
+
     /**
      * Aplicar promoción a la factura si corresponde
-     * 
-     * @param StandardInvoiceDTO $factura
-     * @param float $puntosBase
-     * @param array $cliente
+     *
      * @return array ['promocion_id' => int|null, 'puntos_finales' => float]
      */
     private function aplicarPromocion(StandardInvoiceDTO $factura, float $puntosBase, array $cliente): array
@@ -357,13 +391,13 @@ class PuntosService
 
     private function normalizarTelefonoLocal(?string $telefono): ?string
     {
-        if (!$telefono) {
+        if (! $telefono) {
             return null;
         }
 
         $soloNumeros = preg_replace('/[^0-9]/', '', $telefono);
 
-        if (!$soloNumeros) {
+        if (! $soloNumeros) {
             return null;
         }
 
@@ -371,14 +405,15 @@ class PuntosService
             $resto = substr($soloNumeros, 3);
             if ($resto !== '') {
                 if ($resto[0] !== '0') {
-                    $resto = '0' . $resto;
+                    $resto = '0'.$resto;
                 }
+
                 return substr($resto, 0, 9);
             }
         }
 
         if (strlen($soloNumeros) === 8 && $soloNumeros[0] === '9') {
-            return '0' . $soloNumeros;
+            return '0'.$soloNumeros;
         }
 
         if (strlen($soloNumeros) === 9 && $soloNumeros[0] === '0') {

@@ -40,7 +40,7 @@ class ProcesarCampanasProgramadas extends Command
                 ->table('campanas')
                 ->where('estado', 'pendiente')
                 ->whereNotNull('fecha_programada')
-                ->where('fecha_programada', '<=', now()->toDateTimeString())
+                ->where('fecha_programada', '<=', now('America/Montevideo')->toDateTimeString())
                 ->get();
 
             foreach ($campanasPendientes as $campana) {
@@ -51,11 +51,11 @@ class ProcesarCampanasProgramadas extends Command
                     ->update([
                         'estado' => 'en_cola',
                         'fecha_programada' => null,
-                        'updated_at' => now()->toDateTimeString(),
+                        'updated_at' => now('America/Montevideo')->toDateTimeString(),
                     ]);
 
-                // Despachar job
-                EnviarCampanaJob::dispatch($campana->id)->onQueue('campanas');
+                // Despachar job (con tenant_id para evitar cruces entre tenants)
+                EnviarCampanaJob::dispatch($campana->id, $tenant->id)->onQueue('campanas');
 
                 $this->info("Tenant {$tenant->rut}: Campaña {$campana->id} encolada.");
                 $totalEncoladas++;

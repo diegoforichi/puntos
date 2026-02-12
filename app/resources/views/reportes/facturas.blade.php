@@ -25,14 +25,18 @@
         <div class="card-body">
             <form action="/{{ $tenant->rut }}/reportes/facturas" method="GET" class="row g-3">
                 <div class="col-md-3">
+                    <label class="form-label">Cliente</label>
+                    <input type="text" name="cliente" class="form-control" placeholder="Nombre o documento" value="{{ $filtros['cliente'] ?? '' }}">
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">Desde</label>
                     <input type="date" name="fecha_inicio" class="form-control" value="{{ $filtros['fecha_inicio'] ?? '' }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Hasta</label>
                     <input type="date" name="fecha_fin" class="form-control" value="{{ $filtros['fecha_fin'] ?? '' }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Estado</label>
                     <select name="estado" class="form-select">
                         <option value="">Todas</option>
@@ -40,12 +44,43 @@
                         <option value="vencidas" {{ ($filtros['estado'] ?? '') === 'vencidas' ? 'selected' : '' }}>Vencidas</option>
                     </select>
                 </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
                         <i class="bi bi-funnel"></i> Filtrar
                     </button>
+                    <a href="/{{ $tenant->rut }}/reportes/facturas" class="btn btn-outline-secondary" title="Limpiar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Resumen Estadístico -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Facturas</h6>
+                    <h3 class="mb-0">{{ number_format($estadisticas['total_facturas']) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Monto Total</h6>
+                    <h3 class="mb-0 text-primary">${{ number_format($estadisticas['total_monto'], 2, ',', '.') }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Puntos Generados</h6>
+                    <h3 class="mb-0 text-success">{{ number_format($estadisticas['total_puntos'], 2, ',', '.') }}</h3>
+                </div>
+            </div>
         </div>
     </div>
 

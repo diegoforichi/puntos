@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\EnviarNotificacionWhatsApp;
 use App\Models\Tenant;
 use App\Models\Configuracion;
-use App\Services\NotificacionService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -70,11 +70,12 @@ class NotifyExpiringPoints extends Command
                 $desde = Carbon::now();
                 $hasta = Carbon::now()->addDays($days);
 
-                $facturas = DB::connection('tenant')->table('facturas')
+                // Buscar clientes que tienen facturas por vencer en los próximos N días
+                // Obtenemos la fecha más próxima de vencimiento por cliente
+                $clientesConFacturasPorVencer = DB::connection('tenant')->table('facturas')
                     ->select(
                         'cliente_id',
-                        DB::raw('SUM(puntos_generados) as puntos_generados'),
-                        DB::raw('MIN(fecha_vencimiento) as fecha_vencimiento')
+                        DB::raw('MIN(fecha_vencimiento) as proxima_expiracion')
                     )
                     ->where('fecha_vencimiento', '>', $desde)
                     ->where('fecha_vencimiento', '<=', $hasta)
@@ -82,44 +83,63 @@ class NotifyExpiringPoints extends Command
                     ->groupBy('cliente_id')
                     ->get();
 
-                if ($facturas->isEmpty()) {
+                if ($clientesConFacturasPorVencer->isEmpty()) {
                     $this->line("Tenant {$tenant->rut}: sin clientes con puntos por vencer en {$days} día(s)");
                     continue;
                 }
 
+                // Obtener datos completos de clientes (incluyendo puntos_acumulados = saldo REAL)
                 $clientes = DB::connection('tenant')->table('clientes')
-                    ->whereIn('id', $facturas->pluck('cliente_id'))
+                    ->whereIn('id', $clientesConFacturasPorVencer->pluck('cliente_id'))
+                    ->where('puntos_acumulados', '>', 0) // Solo clientes con saldo real > 0
                     ->get()
                     ->keyBy('id');
 
-                $notificacionService = new NotificacionService($tenant);
+                if ($clientes->isEmpty()) {
+                    $this->line("Tenant {$tenant->rut}: clientes con facturas por vencer pero sin saldo real disponible");
+                    continue;
+                }
+
+                // Mapear fechas de expiración por cliente_id
+                $fechasExpiracion = $clientesConFacturasPorVencer->pluck('proxima_expiracion', 'cliente_id');
+
                 $notificacionesTenant = 0;
                 $clientesSinTelefono = 0;
+                $clientesSinSaldo = 0;
+                $delaySegundos = 0;
+                $intervaloEntreJobs = 8; // 8 segundos entre cada mensaje para evitar bloqueos
 
-                foreach ($facturas as $factura) {
-                    $cliente = $clientes->get($factura->cliente_id);
-
-                    if (!$cliente) {
-                        continue;
-                    }
-
+                foreach ($clientes as $cliente) {
                     if (empty($cliente->telefono)) {
                         $clientesSinTelefono++;
                         continue;
                     }
 
+                    // Usar el saldo REAL del cliente (puntos_acumulados), no la suma de facturas
+                    $puntosReales = (float) $cliente->puntos_acumulados;
+
+                    if ($puntosReales <= 0) {
+                        $clientesSinSaldo++;
+                        continue;
+                    }
+
                     $clienteArray = (array) $cliente;
-                    $puntos = (float) $factura->puntos_generados;
-                    $fechaVencimiento = $factura->fecha_vencimiento
-                        ? Carbon::parse($factura->fecha_vencimiento)->format('d/m/Y')
+                    $fechaVencimiento = $fechasExpiracion->get($cliente->id)
+                        ? Carbon::parse($fechasExpiracion->get($cliente->id))->format('d/m/Y')
                         : Carbon::now()->addDays($days)->format('d/m/Y');
 
-                    $notificacionService->notificarPuntosProximosAVencer(
+                    // Encolar con delay progresivo para evitar bloqueos de WhatsApp
+                    EnviarNotificacionWhatsApp::dispatch(
+                        $tenant->id,
+                        EnviarNotificacionWhatsApp::TIPO_VENCIMIENTO,
                         $clienteArray,
-                        $puntos,
-                        $fechaVencimiento
-                    );
+                        [
+                            'puntos' => $puntosReales,
+                            'fecha_vencimiento' => $fechaVencimiento,
+                        ]
+                    )->delay(now()->addSeconds($delaySegundos));
 
+                    $delaySegundos += $intervaloEntreJobs;
                     $notificacionesTenant++;
                 }
 
@@ -128,11 +148,16 @@ class NotifyExpiringPoints extends Command
                 if ($notificacionesTenant > 0) {
                     $totalNotificaciones += $notificacionesTenant;
                     $totalTenantsProcesados++;
-                    $this->info("Tenant {$tenant->rut}: {$notificacionesTenant} notificación(es) enviada(s)");
+                    $tiempoEstimado = ceil($notificacionesTenant * $intervaloEntreJobs / 60);
+                    $this->info("Tenant {$tenant->rut}: {$notificacionesTenant} notificación(es) encolada(s) (~{$tiempoEstimado} min)");
                 }
 
                 if ($clientesSinTelefono > 0) {
                     $this->line("Tenant {$tenant->rut}: {$clientesSinTelefono} cliente(s) omitido(s) sin teléfono");
+                }
+
+                if ($clientesSinSaldo > 0) {
+                    $this->line("Tenant {$tenant->rut}: {$clientesSinSaldo} cliente(s) omitido(s) sin saldo real");
                 }
             } catch (\Throwable $e) {
                 Log::error('Error notificando puntos por vencer', [
@@ -146,7 +171,12 @@ class NotifyExpiringPoints extends Command
 
         $this->line('-------------------------------------------');
         $this->info("Tenants procesados: {$totalTenantsProcesados}");
-        $this->info("Notificaciones enviadas: {$totalNotificaciones}");
+        $this->info("Notificaciones encoladas: {$totalNotificaciones}");
+
+        if ($totalNotificaciones > 0) {
+            $tiempoTotal = ceil($totalNotificaciones * 8 / 60);
+            $this->info("Tiempo estimado de envío: ~{$tiempoTotal} minutos (8 seg entre mensajes)");
+        }
 
         return self::SUCCESS;
     }

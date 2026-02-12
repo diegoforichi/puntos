@@ -47,7 +47,7 @@ class CampanaEnvio extends Model
         $this->update([
             'estado' => 'enviado',
             'intentos' => $this->intentos + 1,
-            'sent_at' => now(),
+            'sent_at' => now('America/Montevideo'),
         ]);
     }
 

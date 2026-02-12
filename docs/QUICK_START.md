@@ -43,16 +43,16 @@ npm run dev
 ### ❌ NUNCA:
 1. Hardcodear textos en vistas
 2. Ejecutar composer/npm en servidor
-3. Usar SQLite en producción
+3. Saltarse la cola (enviar WhatsApp sin Jobs/delays)
 4. JavaScript complejo sin justificar
-5. Deploy sin tests
+5. Deploy sin un checklist mínimo (migraciones + cache clear + cola)
 
 ### ✅ SIEMPRE:
 1. Usar `__('models.xxx')` para textos
 2. Documentar con PHPDoc
 3. Incluir tests
 4. Mantener simple
-5. MySQL en producción
+5. Respetar multi-tenancy del proyecto (MySQL global + SQLite por tenant)
 6. Mantener listado de archivos a subir al hosting tras cada cambio
 
 ---
@@ -98,8 +98,8 @@ php artisan test
 # Formateo
 vendor/bin/pint
 
-# Sin hardcode
-grep -r "Productos\|Clientes\|Facturas" resources/views/
+# Cache clear (post deploy / si ves comportamiento raro)
+php artisan optimize:clear
 ```
 
 ---
@@ -112,8 +112,10 @@ grep -r "Productos\|Clientes\|Facturas" resources/views/
 | Usar asistente IA | AI_DEVELOPMENT_GUIDELINES.md |
 | Hacer deploy | SECURITY_CHECKLIST.md |
 | Ver stack del proyecto | CONTEXT.md |
-| Cambiar nombre de modelo | i18n-rules.md |
-| Duda sobre código | code-conventions.md |
+| Arquitectura / multi-tenancy | ARQUITECTURA.md |
+| Esquema de bases de datos | ESQUEMA_BASE_DATOS.md |
+| API de Puntos | API_Puntos.md |
+| Estado + correcciones + pendientes | PLAN_MEJORAS_FUTURAS.md |
 | Archivos para subir al hosting | QUICK_START.md (sección "Archivos para deploy") |
 
 ---
@@ -151,7 +153,8 @@ chmod -R 755 storage/ bootstrap/cache/
 ## 🧪 Pruebas de Campañas (local)
 
 1. **Preparación**
-   - Define `QUEUE_CONNECTION=sync` para pruebas rápidas o `QUEUE_CONNECTION=database` y levanta el worker con `php artisan queue:work --queue=campanas --tries=3 --timeout=90`.
+   - Para pruebas realistas de delays: usa `QUEUE_CONNECTION=database` y levanta el worker con `php artisan queue:work --queue=campanas --tries=3 --timeout=90`.
+   - Usa `QUEUE_CONNECTION=sync` **solo** si WhatsApp/Email están desactivados (porque `delay()` no aplica en `sync`).
    - Limpia cachés: `php artisan optimize:clear`.
 2. **Migrar bases de tenants**
    - Ejecuta `php artisan tenant:migrate {RUT_DEL_TENANT}` para cada archivo `.sqlite` en `storage/tenants`.
@@ -216,28 +219,41 @@ Al terminar:
 Mantén este listado actualizado en cada entrega. Copia/pega el bloque y marca los archivos modificados:
 
 ```
-### Archivos para subir al hosting (actualizado 2025-11-04)
-- [ ] app/app/Console/Commands/ProcesarCampanasProgramadas.php
-- [ ] app/app/Http/Controllers/CampanaController.php (✨ nuevos métodos: pause, resume, destroy)
-- [ ] app/app/Http/Controllers/ClienteController.php (✨ nuevos métodos: create, store)
-- [ ] app/app/Http/Controllers/ConfiguracionController.php (🔧 fix WhatsApp test)
+### Archivos para subir al hosting (actualizado 2026-02-11)
+
+## Hotfix Campañas (multi-tenant + estabilidad)
 - [ ] app/app/Jobs/EnviarCampanaJob.php
-- [ ] app/app/Jobs/ProcesarEnvioCampana.php (✨ placeholders extendidos, validación email/teléfono)
-- [ ] app/app/Mail/CampanaMail.php
-- [ ] app/app/Models/Campana.php (✨ SoftDeletes, métodos helper de permisos)
-- [ ] app/app/Models/CampanaEnvio.php
-- [ ] app/app/Services/WhatsAppService.php
-- [ ] app/database/migrations/tenant/2025_10_23_120400_create_campanas_tables.php
-- [ ] app/database/migrations/tenant/2025_10_25_000000_update_campanas_tables.php
-- [ ] app/database/migrations/tenant/2025_11_04_000000_add_soft_deletes_and_paused_to_campanas.php (🆕 soft deletes)
-- [ ] app/resources/views/campanas/index.blade.php (✨ dropdown de acciones según estado)
-- [ ] app/resources/views/campanas/create.blade.php
-- [ ] app/resources/views/campanas/show.blade.php (✨ botones dinámicos de acción)
-- [ ] app/resources/views/clientes/create.blade.php (🆕 formulario manual de clientes)
-- [ ] app/resources/views/clientes/index.blade.php (✨ botón "Nuevo Cliente")
-- [ ] app/resources/views/emails/campana.blade.php
-- [ ] app/routes/web.php (✨ nuevas rutas: pause, resume, destroy campañas; create/store clientes)
+- [ ] app/app/Http/Controllers/CampanaController.php
+- [ ] app/app/Console/Commands/ProcesarCampanasProgramadas.php
+
+## Dosificación WhatsApp (vencimiento + bienvenida)
+- [ ] app/app/Jobs/EnviarNotificacionWhatsApp.php
+- [ ] app/app/Console/Commands/NotifyExpiringPoints.php
+- [ ] app/app/Services/PuntosService.php
+
+## Promociones (anti re-envío 24h + vencidas)
+- [ ] app/app/Http/Controllers/PromocionController.php
+
+## Reportes + vistas de historial por cliente
+- [ ] app/app/Http/Controllers/ReporteController.php
+- [ ] app/app/Http/Controllers/ClienteController.php
+- [ ] app/app/Models/Actividad.php
+- [ ] app/resources/views/reportes/canjes.blade.php
+- [ ] app/resources/views/reportes/facturas.blade.php
+- [ ] app/resources/views/reportes/clientes.blade.php
+- [ ] app/resources/views/reportes/actividades.blade.php
+- [ ] app/resources/views/clientes/show.blade.php
+- [ ] app/resources/views/clientes/canjes.blade.php
+- [ ] app/resources/views/clientes/facturas.blade.php
+- [ ] app/routes/web.php
+
+## Autoconsulta (fix columna)
+- [ ] app/app/Http/Controllers/AutoconsultaController.php
+
+## Docs
 - [ ] docs/CHANGELOG.md
+- [ ] docs/PLAN_MEJORAS_FUTURAS.md
+- [ ] docs/ESQUEMA_BASE_DATOS.md
 - [ ] docs/QUICK_START.md
 ```
 

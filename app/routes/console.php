@@ -21,7 +21,15 @@ Artisan::command('inspire', function () {
 
 app(Schedule::class)
     ->command('campanas:procesar-programadas')
-    ->everyMinute()
+    ->everyFifteenMinutes()
     ->withoutOverlapping()
     ->runInBackground()
     ->description('Procesa campañas programadas y las encola para envío');
+
+app(Schedule::class)
+    ->command('tenant:compactar-sqlite --analyze')
+    ->weekly()
+    ->sundays()
+    ->at('03:00')
+    ->withoutOverlapping()
+    ->description('Compacta bases SQLite de todos los tenants (domingo 3 AM)');

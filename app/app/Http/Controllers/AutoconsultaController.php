@@ -182,11 +182,13 @@ class AutoconsultaController extends Controller
 
     private function calcularStats(Cliente $cliente, $facturasActivas): array
     {
+        // Buscar próxima fecha de vencimiento de facturas activas con puntos
+        // Nota: puntos_generados es la columna correcta (puntos_disponibles no existe)
         $proximaExpiracionRaw = DB::connection('tenant')
             ->table('facturas')
             ->where('cliente_id', $cliente->id)
-            ->where('puntos_disponibles', '>', 0)
-            ->where('fecha_vencimiento', '>=', date('Y-m-d 00:00:00'))
+            ->where('puntos_generados', '>', 0)
+            ->where('fecha_vencimiento', '>=', now())
             ->orderBy('fecha_vencimiento', 'asc')
             ->value('fecha_vencimiento');
 
@@ -194,11 +196,20 @@ class AutoconsultaController extends Controller
             ? Carbon::parse($proximaExpiracionRaw, 'America/Montevideo')
             : null;
 
+        // Contar facturas que vencen en los próximos 30 días
+        $facturasPorVencer = DB::connection('tenant')
+            ->table('facturas')
+            ->where('cliente_id', $cliente->id)
+            ->where('puntos_generados', '>', 0)
+            ->whereBetween('fecha_vencimiento', [now(), now()->addDays(30)])
+            ->count();
+
         return [
             'puntos_disponibles' => $cliente->puntos_acumulados,
             'puntos_formateados' => $cliente->puntos_formateados,
             'total_facturas' => $facturasActivas->count(),
             'proxima_expiracion' => $proximaExpiracion,
+            'facturas_por_vencer' => $facturasPorVencer,
         ];
     }
 }

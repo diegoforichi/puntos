@@ -1,14 +1,14 @@
-# Panel Laravel - Proyecto Base
+# Documentación - Sistema de Puntos (Multi-Tenant)
 
-Proyecto base Laravel 12 configurado para hosting compartido con reglas y mejores prácticas incluidas.
+Documentación del proyecto **Sistema de Puntos** (Laravel) optimizado para hosting compartido.
 
 ---
 
 ## 🎯 Información del Proyecto
 
-- **Framework**: Laravel 12.34.0
+- **Framework**: Laravel 10.x
 - **PHP**: 8.2.12
-- **Base de Datos**: MySQL 5.7+ (producción), SQLite (desarrollo)
+- **Base de Datos**: MySQL (global) + SQLite (por tenant)
 - **Frontend**: Blade + Tailwind CSS v4
 - **Hosting**: Compartido (Apache 2.4.59)
 
@@ -186,7 +186,7 @@ php artisan optimize
 ## 🔧 Stack Tecnológico
 
 ### Backend:
-- Laravel 12.34.0
+- Laravel 10.x
 - PHP 8.2.12
 - MySQL 5.7.23
 - Apache 2.4.59
@@ -214,7 +214,7 @@ Este proyecto está optimizado para **hosting compartido**:
 - ❌ NO ejecutar composer/npm en servidor
 - ✅ SÍ subir vendor/ completo
 - ✅ SÍ compilar assets localmente
-- ✅ SÍ MySQL en producción
+- ✅ SÍ MySQL global + SQLite por tenant (según diseño del proyecto)
 
 Ver **[docs/GENERAL_RULES.md](docs/GENERAL_RULES.md)** para limitaciones completas.
 
@@ -255,4 +255,4 @@ Ver [CHANGELOG.md](CHANGELOG.md) para historial de cambios.
 
 **Nota**: Este es un proyecto plantilla que sigue las mejores prácticas para desarrollo Laravel en hosting compartido. Puedes usarlo como base para cualquier aplicación.
 
-**Última actualización**: 2025-10-16
+**Última actualización**: 2026-02-11

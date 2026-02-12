@@ -24,44 +24,61 @@
     <div class="card mb-4">
         <div class="card-body">
             <form action="/{{ $tenant->rut }}/reportes/canjes" method="GET" class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label">Cliente</label>
+                    <input type="text" name="cliente" class="form-control" placeholder="Nombre o documento" value="{{ $filtros['cliente'] ?? '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="canjes" {{ ($filtros['tipo'] ?? '') === 'canjes' ? 'selected' : '' }}>Solo Canjes</option>
+                        <option value="ajustes" {{ ($filtros['tipo'] ?? '') === 'ajustes' ? 'selected' : '' }}>Solo Ajustes</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">Desde</label>
                     <input type="date" name="fecha_inicio" class="form-control" value="{{ $filtros['fecha_inicio'] ?? '' }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <label class="form-label">Hasta</label>
                     <input type="date" name="fecha_fin" class="form-control" value="{{ $filtros['fecha_fin'] ?? '' }}">
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
                         <i class="bi bi-funnel"></i> Filtrar
                     </button>
+                    <a href="/{{ $tenant->rut }}/reportes/canjes" class="btn btn-outline-secondary" title="Limpiar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Resumen -->
-    @php
-        $canjesCollection = $canjes instanceof \Illuminate\Pagination\LengthAwarePaginator ? $canjes->getCollection() : (is_array($canjes) ? collect($canjes) : $canjes);
-        $totalCanjesPagina = $canjesCollection
-            ->where('origen', '!=', 'ajuste')
-            ->sum('puntos_canjeados');
-    @endphp
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h6 class="text-muted mb-2">Canjes mostrados</h6>
-                    <h3 class="mb-0">{{ $canjes->count() }}</h3>
+                    <h6 class="text-muted mb-2">Total registros</h6>
+                    <h3 class="mb-0">{{ number_format($estadisticas['total_registros']) }}</h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h6 class="text-muted mb-2">Puntos Canjeados (esta página)</h6>
-                    <h3 class="mb-0 text-danger">{{ number_format($totalCanjesPagina, 2, ',', '.') }}</h3>
+                    <h6 class="text-muted mb-2">Puntos Canjeados (período)</h6>
+                    <h3 class="mb-0 text-danger">{{ number_format($estadisticas['total_canjeados'], 2, ',', '.') }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Ajustes</h6>
+                    <h3 class="mb-0 text-info">{{ number_format($estadisticas['total_ajustes']) }}</h3>
                 </div>
             </div>
         </div>

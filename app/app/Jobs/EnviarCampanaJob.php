@@ -8,7 +8,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -16,51 +15,84 @@ class EnviarCampanaJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
-    public function __construct(public int $campanaId)
+    public function __construct(public int $campanaId, public ?int $tenantId = null)
     {
         $this->queue = 'campanas';
     }
 
     public function handle(): void
     {
-        // Obtener todos los tenants desde la base central (mysql)
-        $tenants = Tenant::on('mysql')->where('estado', 'activo')->get();
-
         $campana = null;
         $tenant = null;
 
-        foreach ($tenants as $t) {
-            $sqlitePath = $t->getSqlitePath();
-            if (! file_exists($sqlitePath)) {
-                continue;
+        // Ruta principal: usar tenant_id explícito para evitar mezclar tenants
+        if ($this->tenantId) {
+            $tenant = Tenant::on('mysql')
+                ->where('estado', 'activo')
+                ->where('id', $this->tenantId)
+                ->first();
+
+            if (! $tenant) {
+                return;
             }
 
-            // Configurar conexión temporal
-            Config::set('database.connections.tenant_temp', [
+            $sqlitePath = $tenant->getSqlitePath();
+            if (! file_exists($sqlitePath)) {
+                return;
+            }
+
+            Config::set('database.connections.tenant', [
                 'driver' => 'sqlite',
                 'database' => $sqlitePath,
                 'prefix' => '',
                 'foreign_key_constraints' => true,
             ]);
-            DB::purge('tenant_temp');
+            DB::purge('tenant');
+            DB::setDefaultConnection('tenant');
 
-            // Buscar la campaña en este tenant
-            $found = DB::connection('tenant_temp')->table('campanas')->where('id', $this->campanaId)->first();
+            $campana = Campana::find($this->campanaId);
 
-            if ($found) {
-                $tenant = $t;
-                // Configurar la conexión 'tenant' definitiva
-                Config::set('database.connections.tenant', [
+            if (! $campana) {
+                return;
+            }
+
+            if ($campana->tenant_id && (int) $campana->tenant_id !== (int) $tenant->id) {
+                return;
+            }
+        } else {
+            // Compatibilidad con jobs antiguos en cola que no traen tenantId
+            $tenants = Tenant::on('mysql')->where('estado', 'activo')->get();
+
+            foreach ($tenants as $t) {
+                $sqlitePath = $t->getSqlitePath();
+                if (! file_exists($sqlitePath)) {
+                    continue;
+                }
+
+                Config::set('database.connections.tenant_temp', [
                     'driver' => 'sqlite',
                     'database' => $sqlitePath,
                     'prefix' => '',
                     'foreign_key_constraints' => true,
                 ]);
-                DB::purge('tenant');
+                DB::purge('tenant_temp');
 
-                // Ahora sí podemos usar Eloquent
-                $campana = Campana::find($this->campanaId);
-                break;
+                $found = DB::connection('tenant_temp')->table('campanas')->where('id', $this->campanaId)->first();
+
+                if ($found) {
+                    $tenant = $t;
+                    Config::set('database.connections.tenant', [
+                        'driver' => 'sqlite',
+                        'database' => $sqlitePath,
+                        'prefix' => '',
+                        'foreign_key_constraints' => true,
+                    ]);
+                    DB::purge('tenant');
+                    DB::setDefaultConnection('tenant');
+
+                    $campana = Campana::find($this->campanaId);
+                    break;
+                }
             }
         }
 
@@ -74,11 +106,8 @@ class EnviarCampanaJob implements ShouldQueue
             ->where('estado', 'pendiente')
             ->get();
 
-        $jobs = $enviosPendientes->map(function ($envio, int $index) {
-            $job = new ProcesarEnvioCampana($envio->id);
-            $job->delay(now()->addSeconds($index * 3));
-
-            return $job;
+        $jobs = $enviosPendientes->map(function ($envio) use ($tenant) {
+            return new ProcesarEnvioCampana($envio->id, $tenant->id);
         })->toArray();
 
         if (empty($jobs)) {
@@ -87,10 +116,11 @@ class EnviarCampanaJob implements ShouldQueue
             return;
         }
 
-        Bus::batch($jobs)
-            ->name("Campaña {$campana->id}")
-            ->onQueue('campanas')
-            ->dispatch();
+        $intervaloSegundos = 8; // 8 segundos entre cada mensaje para evitar bloqueos de WhatsApp
+
+        foreach ($jobs as $index => $job) {
+            dispatch($job)->onQueue('campanas')->delay(now()->addSeconds($index * $intervaloSegundos));
+        }
 
         $campana->update(['estado' => 'enviando']);
     }

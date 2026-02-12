@@ -98,6 +98,7 @@ Route::prefix('{tenant}')->middleware(['tenant'])->group(function () {
         Route::get('/clientes/{id}/editar', [ClienteController::class, 'edit'])->name('tenant.clientes.edit');
         Route::put('/clientes/{id}', [ClienteController::class, 'update'])->name('tenant.clientes.update');
         Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturas'])->name('tenant.clientes.facturas');
+        Route::get('/clientes/{id}/canjes', [ClienteController::class, 'canjes'])->name('tenant.clientes.canjes');
 
         // Reportes (todos los roles)
         Route::get('/reportes', [ReporteController::class, 'index'])->name('tenant.reportes');

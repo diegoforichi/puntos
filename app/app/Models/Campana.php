@@ -115,7 +115,7 @@ class Campana extends Model
         $tenantTelefono = $tenant?->telefono_contacto ?? '';
         $tenantEmail = $tenant?->email_contacto ?? '';
 
-        return str_replace([
+        $mensajeFinal = str_replace([
             '{nombre}',
             '{puntos}',
             '{comercio}',
@@ -130,6 +130,8 @@ class Campana extends Model
             $tenantEmail,
             $cliente->documento,
         ], $mensaje);
+
+        return $mensajeFinal;
     }
 
     public function obtenerContenidoEmail(): array

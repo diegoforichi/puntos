@@ -482,11 +482,9 @@
                                         <label class="form-check-label" for="emailActivo">Usar SMTP personalizado</label>
                                     </div>
                                     <div class="alert alert-info mt-3">
-                                        <small>
-                                            <i class="bi bi-info-circle me-1"></i>
-                                            Con una cuenta SMTP propia puedes enviar hasta <strong>50 correos diarios</strong> desde campañas o reportes automáticos.
-                                            Si necesitás envíos ilimitados, podés habilitar el servicio premium con la configuración global.
-                                        </small>
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Con su cuenta de email personal puede enviar hasta <strong>200 correos diarios</strong>.
+                                        Para envíos masivos, el servicio global permite hasta <strong>2.000 correos diarios</strong> con un máximo de <strong>400 por hora</strong>.
                                     </div>
                                 </div>
                                 <div class="col-md-6">

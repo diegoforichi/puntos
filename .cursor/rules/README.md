@@ -1,6 +1,6 @@
-# Reglas del Proyecto - Panel de Facturas Laravel
+# Reglas del Proyecto - Sistema de Puntos (Multi-Tenant)
 
-Este directorio contiene todas las reglas y convenciones que el asistente de IA debe seguir al trabajar en este proyecto.
+Este directorio contiene reglas y convenciones que el asistente de IA debe seguir al trabajar en este proyecto (hosting compartido + multi-tenancy).
 
 ## 📁 Archivos de Reglas
 
@@ -40,7 +40,7 @@ Este directorio contiene todas las reglas y convenciones que el asistente de IA 
 
 **Incluye**:
 - Información del servidor (specs, software)
-- Limitaciones importantes (SQLite viejo, MySQL 5.7)
+- Restricciones del hosting compartido (cron cada 15 min, sin Node en servidor)
 - Stack tecnológico detallado
 - Estructura del proyecto
 - Configuración de entornos
@@ -113,8 +113,8 @@ Este directorio contiene todas las reglas y convenciones que el asistente de IA 
 ## 🚨 Recordatorios Críticos
 
 ### Base de Datos:
-- ❌ SQLite es VIEJO - NO usar en producción
-- ✅ MySQL 5.7.23 - SÍ usar en producción
+- ✅ MySQL (global) + SQLite (por tenant) según diseño del proyecto
+- ⚠️ SQLite tiene límites (concurrencia / inserts masivos): usar chunks y Jobs para procesos pesados
 
 ### Dependencias:
 - ❌ NO ejecutar composer en servidor
@@ -233,4 +233,4 @@ Cambiar "Productos" → "Artículos" = **editar 1 archivo** (models.php)
 
 Si tienes dudas sobre estas reglas o necesitas actualizarlas, consulta con el equipo de desarrollo.
 
-**Última actualización**: 2025-10-16 (agregado sistema de traducciones)
+**Última actualización**: 2026-02-11

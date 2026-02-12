@@ -22,47 +22,34 @@ class ProcesarEnvioCampana implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable;
 
-    public function __construct(public int $envioId)
+    public function __construct(public int $envioId, public int $tenantId)
     {
         $this->queue = 'campanas';
     }
 
     public function handle(NotificationConfigResolver $configResolver, WhatsAppService $whatsAppService): void
     {
-        // Buscar el envío en todos los tenants
-        $tenants = Tenant::where('estado', 'activo')->get();
+        $tenantModel = Tenant::on('mysql')->find($this->tenantId);
 
-        $envio = null;
-
-        foreach ($tenants as $tenant) {
-            $sqlitePath = $tenant->getSqlitePath();
-            if (! file_exists($sqlitePath)) {
-                continue;
-            }
-
-            // Configurar conexión tenant
-            Config::set('database.connections.tenant', [
-                'driver' => 'sqlite',
-                'database' => $sqlitePath,
-                'prefix' => '',
-                'foreign_key_constraints' => true,
-            ]);
-            DB::purge('tenant');
-
-            // Buscar el envío
-            $found = DB::connection('tenant')->table('campana_envios')->where('id', $this->envioId)->first();
-
-            if ($found) {
-                $envio = CampanaEnvio::with(['campana', 'cliente'])->find($this->envioId);
-                break;
-            }
-        }
-
-        if (! $envio) {
+        if (! $tenantModel) {
             return;
         }
 
-        // Continuar con el procesamiento normal
+        $sqlitePath = $tenantModel->getSqlitePath();
+
+        if (! file_exists($sqlitePath)) {
+            return;
+        }
+
+        Config::set('database.connections.tenant', [
+            'driver' => 'sqlite',
+            'database' => $sqlitePath,
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ]);
+        DB::purge('tenant');
+        DB::setDefaultConnection('tenant');
+
         $envio = CampanaEnvio::with(['campana', 'cliente'])->find($this->envioId);
 
         if (! $envio || ! $envio->campana || ! $envio->cliente) {
@@ -71,11 +58,31 @@ class ProcesarEnvioCampana implements ShouldQueue
 
         $campana = $envio->campana;
 
-        // Obtener el tenant desde MySQL usando el tenant_id de la campaña
-        $tenantModel = null;
-        if ($campana->tenant_id) {
-            $tenantModel = \App\Models\Tenant::on('mysql')->find($campana->tenant_id);
+        if ($campana->tenant_id && (int) $campana->tenant_id !== $tenantModel->id) {
+            return;
         }
+
+        $originalUpdatedAt = $envio->updated_at;
+
+        $query = DB::connection('tenant')->table('campana_envios')
+            ->where('id', $envio->id)
+            ->where('estado', 'pendiente');
+
+        if ($originalUpdatedAt) {
+            $query->where('updated_at', $originalUpdatedAt);
+        } else {
+            $query->whereNull('updated_at');
+        }
+
+        $tomado = $query->update([
+            'updated_at' => now('America/Montevideo'),
+        ]);
+
+        if ($tomado === 0) {
+            return;
+        }
+
+        $envio->refresh();
 
         $cliente = $envio->cliente;
 
@@ -118,7 +125,8 @@ class ProcesarEnvioCampana implements ShouldQueue
                     $campana->incrementarTotales('whatsapp', false);
                 }
 
-                sleep(2);
+                // Delay aleatorio 4-7 segundos para evitar bloqueos de WhatsApp
+                sleep(random_int(4, 7));
             }
 
             if ($envio->canal === 'email') {
@@ -147,24 +155,62 @@ class ProcesarEnvioCampana implements ShouldQueue
                     return;
                 }
 
-                $usaEmailPersonalizado = (($config['source'] ?? 'global') === 'tenant') && ($config['activo'] ?? false);
-                $cacheKey = null;
-                $enviosRealizados = 0;
+                $ahora = now();
+                $origenConfig = $config['source'] ?? 'global';
+                $usaEmailPersonalizado = ($origenConfig === 'tenant') && ($config['activo'] ?? false);
+                $claveCuotaTenantDia = null;
+                $claveCuotaGlobalHora = null;
+                $claveCuotaGlobalDia = null;
 
                 if ($usaEmailPersonalizado) {
-                    $cacheKey = sprintf('tenant:%s:email_quota:%s', $tenantModel?->id ?? 'global', now()->format('Y-m-d'));
-                    $ttl = now()->diffInSeconds(now()->endOfDay()) ?: 60;
-                    $enviosRealizados = Cache::remember($cacheKey, $ttl, fn () => 0);
+                    $tenantId = $tenantModel?->id ?? 'global';
+                    $claveCuotaTenantDia = sprintf('email_quota_tenant:%s:%s', $tenantId, $ahora->toDateString());
 
-                    if ($enviosRealizados >= 50) {
-                        Log::info('Límite diario de emails alcanzado. Se reintentará mañana.', [
+                    Cache::add($claveCuotaTenantDia, 0, $ahora->copy()->endOfDay());
+                    $enviosTenantHoy = (int) Cache::get($claveCuotaTenantDia, 0);
+
+                    if ($enviosTenantHoy >= 200) {
+                        Log::info('Límite diario de emails (SMTP tenant) alcanzado. Se reintentará mañana.', [
                             'tenant' => $tenantModel?->rut,
                             'campana_id' => $campana->id,
                             'envio_id' => $envio->id,
                         ]);
 
-                        $reintento = now()->addDay()->startOfDay()->addMinutes(5);
-                        self::dispatch($envio->id)->delay($reintento);
+                        $proximoIntento = $ahora->copy()->addDay()->startOfDay()->addMinutes(10);
+                        $this->release($ahora->diffInSeconds($proximoIntento));
+
+                        return;
+                    }
+                } else {
+                    $claveCuotaGlobalHora = 'email_quota_global_hour:'.$ahora->format('Y-m-d_H');
+                    $claveCuotaGlobalDia = 'email_quota_global_day:'.$ahora->toDateString();
+
+                    Cache::add($claveCuotaGlobalHora, 0, $ahora->copy()->addHour());
+                    Cache::add($claveCuotaGlobalDia, 0, $ahora->copy()->endOfDay());
+
+                    $enviosGlobalHora = (int) Cache::get($claveCuotaGlobalHora, 0);
+                    $enviosGlobalDia = (int) Cache::get($claveCuotaGlobalDia, 0);
+
+                    if ($enviosGlobalHora >= 400) {
+                        Log::info('Límite horario de emails (SMTP global) alcanzado. Reintentando en la próxima hora.', [
+                            'campana_id' => $campana->id,
+                            'envio_id' => $envio->id,
+                        ]);
+
+                        $proximaHora = $ahora->copy()->addHour()->startOfHour();
+                        $this->release(max(60, $ahora->diffInSeconds($proximaHora)));
+
+                        return;
+                    }
+
+                    if ($enviosGlobalDia >= 2000) {
+                        Log::info('Límite diario de emails (SMTP global) alcanzado. Se reintentará mañana.', [
+                            'campana_id' => $campana->id,
+                            'envio_id' => $envio->id,
+                        ]);
+
+                        $proximoDia = $ahora->copy()->addDay()->startOfDay()->addMinutes(10);
+                        $this->release($ahora->diffInSeconds($proximoDia));
 
                         return;
                     }
@@ -184,9 +230,18 @@ class ProcesarEnvioCampana implements ShouldQueue
                 $envio->marcarEnviado();
                 $campana->incrementarTotales('email', true);
 
-                if ($usaEmailPersonalizado && $cacheKey) {
-                    $ttl = now()->diffInSeconds(now()->endOfDay()) ?: 60;
-                    Cache::put($cacheKey, $enviosRealizados + 1, $ttl);
+                if ($usaEmailPersonalizado && $claveCuotaTenantDia) {
+                    Cache::increment($claveCuotaTenantDia);
+                }
+
+                if (! $usaEmailPersonalizado) {
+                    if ($claveCuotaGlobalHora) {
+                        Cache::increment($claveCuotaGlobalHora);
+                    }
+
+                    if ($claveCuotaGlobalDia) {
+                        Cache::increment($claveCuotaGlobalDia);
+                    }
                 }
             }
         } catch (\Throwable $e) {
@@ -200,9 +255,11 @@ class ProcesarEnvioCampana implements ShouldQueue
             $campana->incrementarTotales($envio->canal, false);
 
             if ($envio->intentos < 3) {
-                self::dispatch($envio->id)->delay(now()->addMinutes(5));
+                self::dispatch($envio->id, $tenantModel->id)->delay(now()->addMinutes(5));
             }
         } finally {
+            DB::purge('tenant');
+            DB::setDefaultConnection('mysql');
             $campana->marcarCompletadaSiCorresponde();
         }
     }

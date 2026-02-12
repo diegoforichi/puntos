@@ -73,7 +73,7 @@ protected $casts = [
     'date' => 'datetime',
 ];
 
-// ✅ Laravel 12 (actual)
+// ✅ Laravel 10 (actual)
 protected function casts(): array
 {
     return [
@@ -190,7 +190,7 @@ proyecto/
 "Crea un CRUD de facturas siguiendo @GENERAL_RULES.md.
 
 Contexto:
-- Laravel 12, PHP 8.2, MySQL 5.7
+- Laravel 10, PHP 8.2, MySQL 5.7
 - Hosting compartido (sin Node.js en servidor)
 - Stack: Blade + Tailwind + Livewire
 
@@ -369,7 +369,7 @@ REGLAS OBLIGATORIAS:
 7. Justificar decisiones técnicas
 
 STACK:
-- Laravel 12, PHP 8.2, MySQL 5.7
+- Laravel 10, PHP 8.2, MySQL 5.7
 - Blade + Tailwind + Livewire
 - Sin Node.js en servidor
 - Subir vendor/ completo
@@ -425,7 +425,7 @@ LIMITACIONES:
 3. Incluye tests para create y update
 4. Documenta el método store() con PHPDoc
 
-Mantén: Laravel 12, hosting compartido, Blade + Tailwind"
+Mantén: Laravel 10, hosting compartido, Blade + Tailwind"
 ```
 
 **Refinamiento**:
@@ -503,7 +503,7 @@ Incluir:
 Relaciones:
 - belongsToMany Category
 
-Laravel 12, Blade + Tailwind, hosting compartido"
+Laravel 10, Blade + Tailwind, hosting compartido"
 ```
 
 ### 2. Refactorización:

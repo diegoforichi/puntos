@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\EnviarNotificacionWhatsApp;
 use App\Models\Actividad;
 use App\Models\Cliente;
 use App\Models\Configuracion;
 use App\Models\Promocion;
-use App\Services\NotificacionService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Controlador de Promociones
@@ -286,6 +286,21 @@ class PromocionController extends Controller
             return back()->with('warning', 'Solo se pueden notificar promociones activas');
         }
 
+        if ($promocion->fecha_fin && $promocion->fecha_fin->isPast()) {
+            return back()->with('warning', 'No se puede notificar una promoción con vigencia vencida.');
+        }
+
+        // Evitar notificaciones duplicadas (máximo 1 vez cada 24 horas por promoción)
+        $yaNotificada = DB::connection('tenant')->table('actividades')
+            ->where('accion', 'promocion_gestionada')
+            ->where('descripcion', 'LIKE', "Notificación promocional: {$promocion->nombre}%")
+            ->where('created_at', '>=', now()->subHours(24))
+            ->exists();
+
+        if ($yaNotificada) {
+            return back()->with('warning', 'Esta promoción ya fue notificada en las últimas 24 horas.');
+        }
+
         $eventos = Configuracion::get('eventos_whatsapp', []);
 
         if (! ($eventos['promociones_activas'] ?? false)) {
@@ -301,31 +316,22 @@ class PromocionController extends Controller
             return back()->with('warning', 'No hay clientes con teléfono registrado para notificar');
         }
 
-        $notificaciones = new NotificacionService($tenant);
-        $enviados = 0;
-        $fallidos = 0;
         $fechaFin = optional($promocion->fecha_fin)->format('d/m/Y') ?? now()->format('d/m/Y');
         $descripcion = $promocion->descripcion ?: $promocion->nombre;
+        $totalEncolados = 0;
 
-        foreach ($clientes as $cliente) {
-            try {
-                $notificaciones->notificarPromocion(
-                    $cliente->toArray(),
-                    $descripcion,
-                    $fechaFin
-                );
+        foreach ($clientes as $index => $cliente) {
+            EnviarNotificacionWhatsApp::dispatch(
+                $tenant->id,
+                EnviarNotificacionWhatsApp::TIPO_PROMOCION,
+                $cliente->only(['nombre', 'telefono']),
+                [
+                    'descripcion' => $descripcion,
+                    'fecha_fin' => $fechaFin,
+                ]
+            )->delay(now()->addSeconds($index * 5)); // 5 segundos entre cada mensaje para evitar bloqueos
 
-                $enviados++;
-            } catch (\Throwable $e) {
-                $fallidos++;
-
-                Log::warning('Error enviando promoción por WhatsApp', [
-                    'tenant' => $tenant->rut,
-                    'promocion_id' => $promocion->id,
-                    'cliente_id' => $cliente->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            $totalEncolados++;
         }
 
         Actividad::registrar(
@@ -334,18 +340,14 @@ class PromocionController extends Controller
             "Notificación promocional: {$promocion->nombre}",
             [
                 'promocion_id' => $promocion->id,
-                'enviados' => $enviados,
-                'fallidos' => $fallidos,
+                'notificaciones_enviadas' => $totalEncolados,
             ]
         );
 
-        $mensaje = "Notificación enviada a {$enviados} cliente(s)";
+        $tiempoEstimado = ceil($totalEncolados * 8 / 60); // ~8 seg por mensaje (5 delay + 3-6 interno)
 
-        if ($fallidos > 0) {
-            $mensaje .= ". {$fallidos} envío(s) fallidos (ver logs).";
-        }
-
-        return redirect("/{$tenant->rut}/promociones")->with('success', $mensaje);
+        return redirect("/{$tenant->rut}/promociones")
+            ->with('success', "Se encolaron {$totalEncolados} notificaciones. Se enviarán gradualmente en los próximos ~{$tiempoEstimado} minutos.");
     }
 
     /**

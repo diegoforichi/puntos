@@ -2,18 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Adapters\EfacturaAdapter;
+use App\Contracts\InvoiceAdapter;
 use App\Http\Controllers\Controller;
+use App\Models\Tenant;
+use App\Services\PuntosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Storage;
-use App\Services\PuntosService;
-use App\Adapters\EfacturaAdapter;
-use App\DTOs\StandardInvoiceDTO;
-use App\Contracts\InvoiceAdapter;
-use App\Models\Tenant;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class WebhookController extends Controller
@@ -22,19 +18,19 @@ class WebhookController extends Controller
     {
         $payload = $request->json()->all();
 
-        if (!$request->bearerToken()) {
+        if (! $request->bearerToken()) {
             return $this->errorResponse('Falta header Authorization', Response::HTTP_UNAUTHORIZED);
         }
 
         $tenant = Tenant::where('api_key', $request->bearerToken())->first();
 
-        if (!$tenant || !$tenant->isActivo()) {
+        if (! $tenant || ! $tenant->isActivo()) {
             return $this->errorResponse('Tenant inválido o inactivo', Response::HTTP_UNAUTHORIZED);
         }
 
         try {
             $adapter = $this->obtenerAdaptador($tenant->formato_factura, $payload);
-            if (!$adapter) {
+            if (! $adapter) {
                 return $this->errorResponse('Formato de factura no soportado', Response::HTTP_BAD_REQUEST);
             }
 
@@ -84,6 +80,129 @@ class WebhookController extends Controller
         }
     }
 
+    public function cancel(Request $request)
+    {
+        $payload = $request->json()->all();
+
+        if (! $request->bearerToken()) {
+            return $this->errorResponse('Falta header Authorization', Response::HTTP_UNAUTHORIZED);
+        }
+
+        $tenant = Tenant::where('api_key', $request->bearerToken())->first();
+
+        if (! $tenant || ! $tenant->isActivo()) {
+            return $this->errorResponse('Tenant inválido o inactivo', Response::HTTP_UNAUTHORIZED);
+        }
+
+        try {
+            $adapter = $this->obtenerAdaptador($tenant->formato_factura, $payload);
+            if (! $adapter) {
+                return $this->errorResponse('Formato de factura no soportado', Response::HTTP_BAD_REQUEST);
+            }
+
+            $dto = $adapter->toStandard($payload);
+            $service = new PuntosService($tenant);
+
+            $cliente = DB::connection('tenant')->table('clientes')
+                ->where('documento', $dto->documentoCliente)
+                ->first();
+
+            if (! $cliente) {
+                $this->registrarWebhookGlobal($tenant, 'error', 404, 'Cliente no encontrado para cancelación', $payload);
+
+                return $this->errorResponse('Cliente no encontrado para la cancelación', Response::HTTP_NOT_FOUND);
+            }
+
+            $factura = DB::connection('tenant')->table('facturas')
+                ->where('cliente_id', $cliente->id)
+                ->where('numero_factura', $dto->numeroFactura)
+                ->orderByDesc('id')
+                ->first();
+
+            if (! $factura) {
+                $this->registrarWebhookGlobal($tenant, 'error', 404, 'Factura no encontrada para cancelación', $payload);
+
+                return $this->errorResponse('Factura no encontrada para la cancelación', Response::HTTP_NOT_FOUND);
+            }
+
+            $cancelacion = DB::connection('tenant')->transaction(function () use (
+                $service,
+                $cliente,
+                $factura,
+                $payload
+            ) {
+                $delta = -1 * (float) $factura->puntos_generados;
+                $ajuste = [
+                    'saldo_anterior' => (float) $cliente->puntos_acumulados,
+                    'saldo_nuevo' => (float) $cliente->puntos_acumulados,
+                    'ajuste_aplicado' => 0.0,
+                ];
+
+                if ($delta !== 0.0) {
+                    $ajuste = $service->ajustarSaldoCliente($cliente->id, $delta);
+                }
+
+                DB::connection('tenant')->table('facturas')->where('id', $factura->id)->delete();
+
+                DB::connection('tenant')->table('webhook_inbox')->insert([
+                    'estado' => 'procesado',
+                    'cfe_id' => $factura->cfe_id,
+                    'documento_cliente' => $cliente->documento,
+                    'puntos_generados' => $ajuste['ajuste_aplicado'],
+                    'motivo_no_acumulo' => 'factura_cancelada',
+                    'origen' => 'efactura_cancel',
+                    'mensaje_error' => null,
+                    'payload_json' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+                    'procesado_en' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                return [
+                    'ajuste' => $ajuste,
+                    'delta' => $ajuste['ajuste_aplicado'],
+                    'puntos_originales' => (float) $factura->puntos_generados,
+                ];
+            });
+
+            $tenant->ultimo_webhook = now();
+            $tenant->facturas_recibidas = max(0, $tenant->facturas_recibidas - 1);
+            $tenant->puntos_generados_total = round($tenant->puntos_generados_total + $cancelacion['delta'], 2);
+            $tenant->save();
+
+            $this->registrarWebhookGlobal(
+                $tenant,
+                'procesado',
+                200,
+                'Factura cancelada',
+                $payload,
+                [
+                    'puntos_generados' => $cancelacion['delta'],
+                    'motivo_no_acumulo' => 'factura_cancelada',
+                ]
+            );
+
+            return response()->json([
+                'status' => 'ok',
+                'tenant' => $tenant->rut,
+                'cliente_documento' => $cliente->documento,
+                'numero_factura' => $factura->numero_factura,
+                'puntos_revertidos' => $cancelacion['ajuste']['ajuste_aplicado'],
+                'saldo_actual' => $cancelacion['ajuste']['saldo_nuevo'],
+                'mensaje' => 'Factura cancelada y puntos ajustados',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error procesando cancelación de factura', [
+                'tenant' => $tenant->rut,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->registrarWebhookGlobal($tenant, 'error', 500, $e->getMessage(), $payload);
+
+            return $this->errorResponse('Error interno al procesar la cancelación', Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
     private function registrarWebhookGlobal(
         Tenant $tenant,
         string $estado,
@@ -91,8 +210,7 @@ class WebhookController extends Controller
         ?string $mensajeError,
         array $payload,
         ?array $result = null
-    ): void
-    {
+    ): void {
         DB::connection('mysql')->table('webhook_inbox_global')->insert([
             'tenant_rut' => $tenant->rut,
             'estado' => $estado,
@@ -112,7 +230,7 @@ class WebhookController extends Controller
 
     private function obtenerAdaptador(string $formato, array $payload): ?InvoiceAdapter
     {
-        $adapter = new EfacturaAdapter();
+        $adapter = new EfacturaAdapter;
 
         if ($adapter->matches($payload)) {
             return $adapter;

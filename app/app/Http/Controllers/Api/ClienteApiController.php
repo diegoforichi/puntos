@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\EnviarNotificacionWhatsApp;
 use App\Models\Actividad;
 use App\Models\Cliente;
 use App\Models\Tenant;
-use App\Services\NotificacionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
@@ -63,7 +63,9 @@ class ClienteApiController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return DB::connection('tenant')->transaction(function () use ($cliente, $data, $documento, $request) {
+        $tenant = $request->attributes->get('tenant');
+
+        $resultado = DB::connection('tenant')->transaction(function () use ($cliente, $data, $documento, $request) {
             $puntosAnteriores = $cliente->puntos_acumulados;
             $puntosCanjeados = (float) $data['puntos_a_canjear'];
             $puntosRestantes = $puntosAnteriores - $puntosCanjeados;
@@ -87,19 +89,6 @@ class ClienteApiController extends Controller
                 'updated_at' => $ahora,
             ]);
 
-            $tenant = $request->attributes->get('tenant');
-            if ($tenant instanceof Tenant) {
-                $notificaciones = new NotificacionService($tenant);
-                $notificaciones->notificarCanje(
-                    [
-                        'nombre' => $cliente->nombre,
-                        'telefono' => $cliente->telefono,
-                    ],
-                    $puntosCanjeados,
-                    $puntosRestantes
-                );
-            }
-
             Actividad::registrar(null, Actividad::ACCION_CANJE, "Canje API por {$documento}", [
                 'documento' => $documento,
                 'puntos_canjeados' => $puntosCanjeados,
@@ -107,14 +96,36 @@ class ClienteApiController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            return response()->json([
-                'status' => 'success',
-                'mensaje' => 'Canje realizado con éxito',
+            return [
                 'puntos_anteriores' => round((float) $puntosAnteriores, 2),
                 'puntos_canjeados' => round((float) $puntosCanjeados, 2),
-                'puntos_nuevos' => round((float) $puntosRestantes, 2),
+                'puntos_restantes' => round((float) $puntosRestantes, 2),
                 'referencia' => $data['referencia'] ?? $data['descripcion'] ?? null,
-            ]);
+            ];
         });
+
+        if ($tenant instanceof Tenant) {
+            EnviarNotificacionWhatsApp::dispatch(
+                $tenant->id,
+                EnviarNotificacionWhatsApp::TIPO_CANJE,
+                [
+                    'nombre' => $cliente->nombre,
+                    'telefono' => $cliente->telefono,
+                ],
+                [
+                    'puntos_canjeados' => $resultado['puntos_canjeados'],
+                    'puntos_restantes' => $resultado['puntos_restantes'],
+                ]
+            );
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'mensaje' => 'Canje realizado con éxito',
+            'puntos_anteriores' => $resultado['puntos_anteriores'],
+            'puntos_canjeados' => $resultado['puntos_canjeados'],
+            'puntos_nuevos' => $resultado['puntos_restantes'],
+            'referencia' => $resultado['referencia'],
+        ]);
     }
 }

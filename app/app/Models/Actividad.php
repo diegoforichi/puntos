@@ -54,6 +54,8 @@ class Actividad extends Model
 
     const ACCION_CLIENTE_CREADO = 'cliente_creado';
 
+    const ACCION_CLIENTE_ACTUALIZADO = 'cliente_actualizado';
+
     const ACCION_CONFIG = 'configuracion_actualizada';
 
     const ACCION_PROMOCION = 'promocion_gestionada';
@@ -169,6 +171,7 @@ class Actividad extends Model
             self::ACCION_CANJE => 'bi-gift',
             self::ACCION_FACTURA => 'bi-receipt',
             self::ACCION_CLIENTE_CREADO => 'bi-person-plus',
+            self::ACCION_CLIENTE_ACTUALIZADO => 'bi-person-gear',
             self::ACCION_CONFIG => 'bi-gear',
             self::ACCION_PROMOCION => 'bi-tags',
             self::ACCION_USUARIO => 'bi-person-badge',
@@ -191,6 +194,7 @@ class Actividad extends Model
             self::ACCION_CANJE => 'text-primary',
             self::ACCION_FACTURA => 'text-info',
             self::ACCION_CLIENTE_CREADO => 'text-success',
+            self::ACCION_CLIENTE_ACTUALIZADO => 'text-primary',
             self::ACCION_CONFIG => 'text-warning',
             self::ACCION_AJUSTE => 'text-info',
             default => 'text-muted',

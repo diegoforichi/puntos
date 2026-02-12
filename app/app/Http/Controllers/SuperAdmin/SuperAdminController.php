@@ -443,29 +443,6 @@ class SuperAdminController extends Controller
 
         if (! File::exists($sqlitePath)) {
             File::put($sqlitePath, '');
-        } elseif (! $force) {
-            config([
-                'database.connections.tenant_temp' => [
-                    'driver' => 'sqlite',
-                    'database' => $sqlitePath,
-                    'prefix' => '',
-                    'foreign_key_constraints' => true,
-                ],
-            ]);
-
-            DB::purge('tenant_temp');
-            DB::setDefaultConnection('tenant_temp');
-
-            $hasClientes = Schema::connection('tenant_temp')->hasTable('clientes');
-            $hasUsuarios = Schema::connection('tenant_temp')->hasTable('usuarios');
-            $hasFacturas = Schema::connection('tenant_temp')->hasTable('facturas');
-
-            DB::setDefaultConnection('mysql');
-            DB::purge('tenant_temp');
-
-            if ($hasClientes && $hasUsuarios && $hasFacturas) {
-                return;
-            }
         }
 
         config([
@@ -479,25 +456,23 @@ class SuperAdminController extends Controller
 
         DB::purge('tenant_temp');
 
-        // Intentar migración estándar primero
         try {
             Artisan::call('migrate', [
                 '--database' => 'tenant_temp',
                 '--path' => 'database/migrations/tenant',
                 '--force' => true,
             ]);
-        } catch (\Exception $e) {
-            // Si falla (SQLite antiguo), usar comando raw
+        } catch (\Throwable $e) {
             DB::purge('tenant_temp');
             DB::setDefaultConnection('mysql');
 
             Artisan::call('tenant:migrate-raw', [
                 'rut' => $tenant->rut,
             ]);
+        } finally {
+            DB::purge('tenant_temp');
+            DB::setDefaultConnection('mysql');
         }
-
-        DB::purge('tenant_temp');
-        DB::setDefaultConnection('mysql');
 
         if (Schema::hasColumn('tenants', 'ultima_migracion')) {
             $tenant->ultima_migracion = now();

@@ -298,6 +298,31 @@ Content-Type: application/json
                         <small class="text-muted">El payload de referencia está en `scripts/hookCfe.json`. Uso limitado a entornos de test.</small>
                     </div>
                 </div>
+
+                <hr class="my-4">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Endpoint de cancelación</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" value="{{ rtrim(config('app.url'), '/') }}/api/webhook/ingest/cancel" readonly>
+                            <button class="btn btn-outline-secondary" onclick="navigator.clipboard.writeText('{{ rtrim(config('app.url'), '/') }}/api/webhook/ingest/cancel')">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Usa el mismo payload que la alta. Revierte puntos hasta dejar el saldo en 0 y elimina la factura.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">cURL cancelación</label>
+                        <div class="bg-light border rounded p-3">
+                            <pre class="mb-0 small">curl -X POST "{{ rtrim(config('app.url'), '/') }}/api/webhook/ingest/cancel" \
+  -H "Authorization: Bearer {{ $tenant->api_key }}" \
+  -H "Content-Type: application/json" \
+  --data @scripts/hookCfe.json</pre>
+                        </div>
+                        <small class="text-muted">Ideal para anulaciones por tarjeta o nota de crédito. No requiere archivos nuevos.</small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

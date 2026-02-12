@@ -50,9 +50,15 @@ class ReporteController extends Controller
         // Filtros
         $estado = $request->get('estado');
         $orden = $request->get('orden', 'puntos_desc');
+        $buscar = $request->get('buscar');
 
         // Query
         $query = Cliente::query();
+
+        // Búsqueda por nombre, documento o email
+        if ($buscar) {
+            $query->buscar($buscar);
+        }
 
         if ($estado === 'con_puntos') {
             $query->conPuntos();
@@ -92,6 +98,7 @@ class ReporteController extends Controller
             'filtros' => [
                 'estado' => $estado,
                 'orden' => $orden,
+                'buscar' => $buscar,
             ],
             'estadisticas' => [
                 'total' => $totalClientes,
@@ -115,16 +122,17 @@ class ReporteController extends Controller
         $fechaInicio = $request->get('fecha_inicio');
         $fechaFin = $request->get('fecha_fin');
         $estado = $request->get('estado');
+        $buscarCliente = $request->get('cliente');
 
         // Query
         $query = Factura::with('cliente:id,nombre,documento');
 
         if ($fechaInicio) {
-            $query->where('fecha_emision', '>=', $fechaInicio);
+            $query->whereDate('fecha_emision', '>=', $fechaInicio);
         }
 
         if ($fechaFin) {
-            $query->where('fecha_emision', '<=', $fechaFin);
+            $query->whereDate('fecha_emision', '<=', $fechaFin);
         }
 
         if ($estado === 'activas') {
@@ -132,6 +140,22 @@ class ReporteController extends Controller
         } elseif ($estado === 'vencidas') {
             $query->vencidas();
         }
+
+        // Filtro por cliente (documento o nombre)
+        if ($buscarCliente) {
+            $query->whereHas('cliente', function ($q) use ($buscarCliente) {
+                $q->where('documento', 'LIKE', "%{$buscarCliente}%")
+                    ->orWhere('nombre', 'LIKE', "%{$buscarCliente}%");
+            });
+        }
+
+        // Estadísticas del período filtrado
+        $statsQuery = clone $query;
+        $estadisticas = [
+            'total_facturas' => $statsQuery->count(),
+            'total_monto' => (clone $statsQuery)->sum('monto_total'),
+            'total_puntos' => (clone $statsQuery)->sum('puntos_generados'),
+        ];
 
         if ($formato === 'csv') {
             $facturas = $query->orderBy('fecha_emision', 'desc')->get();
@@ -153,7 +177,9 @@ class ReporteController extends Controller
                 'fecha_inicio' => $fechaInicio,
                 'fecha_fin' => $fechaFin,
                 'estado' => $estado,
+                'cliente' => $buscarCliente,
             ],
+            'estadisticas' => $estadisticas,
         ]);
     }
 
@@ -170,6 +196,8 @@ class ReporteController extends Controller
         // Filtros
         $fechaInicio = $request->get('fecha_inicio');
         $fechaFin = $request->get('fecha_fin');
+        $buscarCliente = $request->get('cliente');
+        $tipo = $request->get('tipo');
 
         // Query
         $query = PuntosCanjeado::with(['cliente:id,nombre,documento', 'autorizadoPor:id,nombre']);
@@ -181,6 +209,29 @@ class ReporteController extends Controller
         if ($fechaFin) {
             $query->whereDate('created_at', '<=', $fechaFin);
         }
+
+        // Filtro por cliente (documento o nombre)
+        if ($buscarCliente) {
+            $query->whereHas('cliente', function ($q) use ($buscarCliente) {
+                $q->where('documento', 'LIKE', "%{$buscarCliente}%")
+                    ->orWhere('nombre', 'LIKE', "%{$buscarCliente}%");
+            });
+        }
+
+        // Filtro por tipo (canje real vs ajuste)
+        if ($tipo === 'canjes') {
+            $query->where('origen', '!=', 'ajuste');
+        } elseif ($tipo === 'ajustes') {
+            $query->where('origen', 'ajuste');
+        }
+
+        // Estadísticas del período filtrado (antes de paginar)
+        $statsQuery = clone $query;
+        $estadisticas = [
+            'total_registros' => $statsQuery->count(),
+            'total_canjeados' => (clone $statsQuery)->where('origen', '!=', 'ajuste')->sum('puntos_canjeados'),
+            'total_ajustes' => (clone $statsQuery)->where('origen', 'ajuste')->count(),
+        ];
 
         if ($formato === 'csv') {
             $canjes = $query->orderBy('created_at', 'desc')->get();
@@ -201,7 +252,10 @@ class ReporteController extends Controller
             'filtros' => [
                 'fecha_inicio' => $fechaInicio,
                 'fecha_fin' => $fechaFin,
+                'cliente' => $buscarCliente,
+                'tipo' => $tipo,
             ],
+            'estadisticas' => $estadisticas,
         ]);
     }
 
@@ -235,12 +289,14 @@ class ReporteController extends Controller
             $query->where('accion', $accion);
         }
 
-        $actividades = $query->orderBy('created_at', 'desc')->limit(500)->get();
-
-        // Exportar CSV
         if ($formato === 'csv') {
+            $actividades = $query->orderBy('created_at', 'desc')->get();
+
             return $this->exportarActividadesCSV($actividades);
         }
+
+        $actividades = $query->orderBy('created_at', 'desc')
+            ->paginate(50)->onEachSide(1)->withQueryString();
 
         // Vista HTML
         return view('reportes.actividades', [

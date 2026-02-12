@@ -149,7 +149,12 @@
                         <i class="bi bi-receipt-cutoff me-2"></i>
                         Facturas Activas
                     </h5>
-                    <span class="badge bg-primary">{{ $facturasActivas->count() }}</span>
+                    <div>
+                        <span class="badge bg-primary me-2">{{ $facturasActivas->count() }}</span>
+                        <a href="/{{ $tenant->rut }}/clientes/{{ $cliente->id }}/facturas" class="btn btn-outline-primary btn-sm">
+                            Ver todas
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     @if($facturasActivas->count() > 0)
@@ -208,7 +213,12 @@
                         <i class="bi bi-gift me-2"></i>
                         Historial de Canjes
                     </h5>
-                    <span class="badge bg-success">{{ $canjes->count() }}</span>
+                    <div>
+                        <span class="badge bg-success me-2">{{ $canjes->count() }}</span>
+                        <a href="/{{ $tenant->rut }}/clientes/{{ $cliente->id }}/canjes" class="btn btn-outline-primary btn-sm">
+                            Ver todos
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     @if($canjes->count() > 0)

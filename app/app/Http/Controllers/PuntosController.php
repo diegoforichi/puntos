@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\EnviarNotificacionWhatsApp;
 use App\Models\Actividad;
 use App\Models\Cliente;
 use App\Models\Configuracion;
 use App\Models\Factura;
 use App\Models\PuntosCanjeado;
-use App\Services\NotificacionService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -157,12 +157,15 @@ class PuntosController extends Controller
 
             DB::commit();
 
-            // Notificar al cliente por WhatsApp
-            $notificaciones = new NotificacionService($tenant);
-            $notificaciones->notificarCanje(
-                $cliente->toArray(),
-                $validated['puntos_a_canjear'],
-                $puntosRestantes
+            // Notificar al cliente por WhatsApp en background
+            EnviarNotificacionWhatsApp::dispatch(
+                $tenant->id,
+                EnviarNotificacionWhatsApp::TIPO_CANJE,
+                $cliente->only(['nombre', 'telefono']),
+                [
+                    'puntos_canjeados' => (float) $validated['puntos_a_canjear'],
+                    'puntos_restantes' => (float) $puntosRestantes,
+                ]
             );
 
             // Redirigir a página de confirmación/cupón

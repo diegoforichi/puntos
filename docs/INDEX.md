@@ -231,7 +231,7 @@ npm run build   # Producción (compilar)
 
 ## 🎯 Características del Proyecto Base
 
-- ✅ Laravel 12 con estructura moderna
+- ✅ Laravel 10 con estructura moderna
 - ✅ Sistema de traducciones configurado
 - ✅ Reglas completas de desarrollo
 - ✅ Guías de seguridad
